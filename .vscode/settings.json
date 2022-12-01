@@ -1,0 +1,14 @@
+{
+    "cSpell.words": [
+		"color",
+		"powerbi"
+	],
+    "json.schemas": [
+		{
+			"fileMatch": [
+				"capabilities.json"
+			],
+			"url":"https://raw.githubusercontent.com/microsoft/powerbi-visuals-api/main/schema.capabilities.json"
+		}
+	]
+}

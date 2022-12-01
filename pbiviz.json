@@ -1,1 +1,25 @@
-{"visual":{"name":"nickMapBI","displayName":"NickMapBI","guid":"nickMapBI82E1C4CFA7CF45C0BC3CD8771F27FDAF","visualClassName":"Visual","version":"1.0.0","description":"","supportUrl":"","gitHubUrl":""},"apiVersion":"5.1.0","author":{"name":"","email":""},"assets":{"icon":"assets/icon.png"},"externalJS":null,"style":"style/visual.less","capabilities":"capabilities.json","dependencies":null,"stringResources":[]}
+{
+    "visual": {
+        "name": "nickMapBI",
+        "displayName": "NickMapBI",
+        "guid": "nickMapBI82E1C4CFA7CF45C0BC3CD8771F27FDAF",
+        "visualClassName": "Visual",
+        "version": "1.0.0",
+        "description": "",
+        "supportUrl": "",
+        "gitHubUrl": ""
+    },
+    "apiVersion": "5.1.0",
+    "author": {
+        "name": "thehappycheese",
+        "email": ""
+    },
+    "assets": {
+        "icon": "assets/icon.png"
+    },
+    "externalJS": null,
+    "style": "style/visual.less",
+    "capabilities": "capabilities.json",
+    "dependencies": null,
+    "stringResources": []
+}

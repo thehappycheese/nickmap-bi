@@ -1,81 +1,120 @@
 {
     "dataRoles": [
         {
-            "displayName": "Category Data",
-            "name": "category",
-            "kind": "Grouping"
+            "displayName":"Road Number",
+            "name":"road_number",
+            "description":"The road number identifying the state or local government road",
+            "kind":"Grouping",
+            "preferredTypes":[
+                {
+                    "text":true
+                }
+            ]
         },
         {
-            "displayName": "Measure Data",
-            "name": "measure",
-            "kind": "Measure"
+            "displayName":"SLK From",
+            "name":"slk_from",
+            "description":"The linear measurement along the Road at which this row of data starts",
+            "kind":"Grouping",
+            "requiredTypes":[
+                {
+                    "numeric":true
+                }
+            ]
+
+        },
+        {
+            "displayName":"SLK To",
+            "name":"slk_to",
+            "description":"The linear measurement along the Road at which this row of data ends",
+            "kind":"Grouping",
+            "requiredTypes":[
+                {
+                    "numeric":true
+                }
+            ]
+        },
+        {
+            "displayName":"Carriageway",
+            "name":"cwy",
+            "description":"A string value which is some combination of the letters L, R and S identifying the carriageways to visualise this data on.",
+            "kind":"Grouping",
+            "preferredTypes":[
+                {
+                    "text":true
+                }
+            ]
+        },
+        {
+            "displayName":"Offset",
+            "name":"offset",
+            "description":"The distance in meters to offset the line segment visual. (Can be negative or positive to indicate offset direction. I think negative will offset to the left.)",
+            "kind":"Grouping",
+            "preferredTypes":[
+                {
+                    "numeric":true
+                }
+            ]
+        }
+        ,
+        {
+            "displayName":"Colour (CSS)",
+            "name":"colour",
+            "description":"The colour to give each line. Must be a valid CSS colour value. Google 'CSS Colour' and you will find nice charts. Support for PowerBI's automated colour systems in the future.",
+            "kind":"Grouping",
+            "preferredTypes":[
+                {
+                    "text":true
+                }
+            ]
         }
     ],
     "objects": {
-        "dataPoint": {
+        "map_background": {
+            "displayName": "Map Background",
+            "description": "Eh?",
             "properties": {
-                "defaultColor": {
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
+                "url":{
+                    "type": {"text":true}
                 },
-                "showAllDataPoints": {
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "fill": {
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "fillRule": {
-                    "type": {
-                        "fill": {}
-                    }
-                },
-                 "fontSize": {
-                    "type": {
-                        "formatting": {
-                            "fontSize": true
-                        }
-                    }
+                "colour":{
+                    "type": {"fill": {"solid": {"color":true}}}
                 }
             }
         }
+		
     },
     "dataViewMappings": [
         {
-            "categorical": {
-                "categories": {
-                    "for": {
-                        "in": "category"
-                    },
+            "conditions": [
+                
+            ],
+            "table": {
+                "rows": {
                     "dataReductionAlgorithm": {
-                        "top": {}
-                    }
-                },
-                "values": {
+                        "top": {"count": 30000}
+                    },
                     "select": [
-                        {
-                            "bind": {
-                                "to": "measure"
-                            }
-                        }
+                        {"bind": {"to": "road_number"}},
+                        {"bind": {"to": "cwy"}},
+                        {"bind": {"to": "slk_from"}},
+                        {"bind": {"to": "slk_to"}},
+                        {"bind": {"to": "offset"}},
+                        {"bind": {"to": "colour"}}
                     ]
                 }
             }
         }
     ],
     "privileges": [
-        
+        {
+            "name": "WebAccess",
+            "essential": true,
+            "parameters": [
+                "https://linref.thehappycheese.com",
+                "https://tile.openstreetmap.org",
+                "http://api.metromap.com.au/"
+            ]
+        }
     ]
 }
