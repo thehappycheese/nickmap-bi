@@ -3,6 +3,7 @@
 import powerbi from "powerbi-visuals-api";
 import { FormattingSettingsService } from "powerbi-visuals-utils-formattingmodel";
 import "./../style/visual.less";
+import 'ol/ol.css';
 import NickMap from "./nickmap/NickMap";
 
 import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
@@ -36,16 +37,30 @@ export class Visual implements IVisual {
         console.log('Visual update', options);
         if (options.dataViews.length==0 || !options.dataViews[0].table) return;
         let dataview_table = options.dataViews[0].table;
-        batch_requests(iterate_rows_as_dict(dataview_table)).then(
-            (result)=>{
-                let colours = []
-                for(let item of iterate_rows_as_dict(dataview_table)){
-                    colours.push(item.colour);
-                }
-
-                this.nickmap.replace_features(result, colours)
-            }
+        this.nickmap.set_arcgis_rest_layer(
+            this.formattingSettings.map_background_settings.url_tile_arcgis.value,
+            this.formattingSettings.map_background_settings.url_tile_arcgis_show.value
+        );
+        this.nickmap.set_wmts_layer(
+            this.formattingSettings.map_background_settings.url_wmts.value,
+            this.formattingSettings.map_background_settings.url_wmts_show.value,
         )
+        
+        try{
+            batch_requests(iterate_rows_as_dict(dataview_table)).then(
+                (result)=>{
+                    let colours = []
+                    for(let item of iterate_rows_as_dict(dataview_table)){
+                        colours.push(item.colour);
+                    }
+
+                    this.nickmap.replace_features(result, colours)
+                }
+            )
+        }catch(e){
+            // TODO: any error will cause total failure without message to user
+            this.nickmap.replace_features({ type: "FeatureCollection", features: [] },[]);
+        }
     }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {

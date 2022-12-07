@@ -1,18 +1,18 @@
 {
     "visual": {
-        "name": "nickMapBI",
-        "displayName": "NickMapBI",
+        "name": "NickMapBI",
+        "displayName": "NickMap BI",
         "guid": "nickMapBI82E1C4CFA7CF45C0BC3CD8771F27FDAF",
         "visualClassName": "Visual",
-        "version": "1.0.0",
-        "description": "",
-        "supportUrl": "",
-        "gitHubUrl": ""
+        "version": "3.0.1",
+        "description": "Map linear data on the West Australian road network (using slk_from slk_to)",
+        "supportUrl": "https://github.com/thehappycheese/nickmap-bi",
+        "gitHubUrl": "https://github.com/thehappycheese/nickmap-bi"
     },
     "apiVersion": "5.1.0",
     "author": {
         "name": "thehappycheese",
-        "email": ""
+        "email": "thehappycheese"
     },
     "assets": {
         "icon": "assets/icon.png"

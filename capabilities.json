@@ -21,7 +21,6 @@
                     "numeric":true
                 }
             ]
-
         },
         {
             "displayName":"SLK To",
@@ -35,7 +34,7 @@
             ]
         },
         {
-            "displayName":"Carriageway",
+            "displayName":"Carriageway (L|R|S|LS|RS|LRS)",
             "name":"cwy",
             "description":"A string value which is some combination of the letters L, R and S identifying the carriageways to visualise this data on.",
             "kind":"Grouping",
@@ -46,7 +45,7 @@
             ]
         },
         {
-            "displayName":"Offset",
+            "displayName":"Offset Metres (+ or -)",
             "name":"offset",
             "description":"The distance in meters to offset the line segment visual. (Can be negative or positive to indicate offset direction. I think negative will offset to the left.)",
             "kind":"Grouping",
@@ -70,26 +69,32 @@
         }
     ],
     "objects": {
-        "map_background": {
-            "displayName": "Map Background",
-            "description": "Eh?",
+        "line_format": {
             "properties": {
-                "url":{
-                    "type": {"text":true}
-                },
-                "colour":{
+                "default_line_colour":{
                     "type": {"fill": {"solid": {"color":true}}}
                 }
             }
+        },
+        "road_network": {
+            "properties": {
+                "show":{"type": {"bool": true}},
+                "url":{"type": {"text":true}}
+            }
+        },
+        "map_background": {
+            "properties": {
+                "url_wmts":{"type": {"text":true}},
+                "url_wmts_show":{"type": {"bool":true}},
+                "url_tile_arcgis":{"type": {"text":true}},
+                "url_tile_arcgis_show":{"type": {"bool":true}}
+            }
         }
-		
     },
     "dataViewMappings": [
         {
-            "conditions": [
-                
-            ],
             "table": {
+                
                 "rows": {
                     "dataReductionAlgorithm": {
                         "top": {"count": 30000}
@@ -113,8 +118,11 @@
             "parameters": [
                 "https://linref.thehappycheese.com",
                 "https://tile.openstreetmap.org",
-                "http://api.metromap.com.au/"
+                "http://api.metromap.com.au/",
+                "https://imageserver.mrwa.wa.gov.au",
+                "https://mrgis.mainroads.wa.gov.au"
             ]
         }
-    ]
+    ],
+    "suppressDefaultTitle": true
 }

@@ -1,4 +1,5 @@
 
+import Map from 'ol/Map';
 import { Style, Stroke, Text, Fill } from 'ol/style';
 import { RenderFunction } from 'ol/style/Style';
 import { Vector as VectorLayer } from 'ol/layer';
@@ -6,7 +7,7 @@ import { toContext } from 'ol/render'
 import LineString from 'ol/geom/LineString'
 
 import { esri_vector_source } from './esri_vector_layer_loader';
-
+import {getVectorContext} from 'ol/render';
 
 import { linestring_measure, linestring_ticks } from './nicks_line_tools';
 import Vector2 from './Vector2';
@@ -81,7 +82,7 @@ let state_road_only_vector_source = new esri_vector_source({
 	service_url:"https://mrgis.mainroads.wa.gov.au/arcgis/rest/services/OpenData/RoadAssets_DataPortal/MapServer/",
 	layer_number:"17",
 	url_params:{
-		"outFields":"ROAD,ROAD_NAME,COMMON_USAGE_NAME,START_SLK,END_SLK,CWY,NETWORK_TYPE,RA_NAME"
+		"outFields":"ROAD,ROAD_NAME,COMMON_USAGE_NAME,START_SLK,END_SLK,CWY,NETWORK_TYPE,RA_NAME,OBJECTID"
 	},
 	sql_filter: "NETWORK_TYPE in ('Main Roads Controlled Path', 'State Road', 'Proposed Road')",
 	tile_size: 256
@@ -137,7 +138,7 @@ let custom_render_tick_text = new Text({
 })
 
 // Cannot use pixel coordinates; we need real distances and un-simplified geometry.
-let custom_renderer_with_SLK_ticks: RenderFunction = (_pixelCoordinates, state) => {
+let custom_renderer_with_SLK_ticks:(map:Map)=>RenderFunction = (map:Map) => (_pixelCoordinates, state) => {
 	// There are a lot of bugs when the pixle ratio is not 1
 	let pixel_ratio = window.devicePixelRatio ?? 1;
 	var context = state.context;
@@ -215,16 +216,19 @@ let custom_renderer_with_SLK_ticks: RenderFunction = (_pixelCoordinates, state) 
 	context.restore();
 }
 
-export let layer_state_road = new VectorLayer({
-	source: state_road_only_vector_source,
-	style: state_road_vector_layer_style_function,
-	minZoom: 8,
-});
-
-export let layer_state_road_ticks = new VectorLayer({
-	source: state_road_only_vector_source,
-	style: new Style({
-		renderer: custom_renderer_with_SLK_ticks
-	}),
-	minZoom: 12
-});
+export function get_road_network_layers(map) {
+	let layer_state_road = new VectorLayer({
+		source: state_road_only_vector_source,
+		style: state_road_vector_layer_style_function,
+		minZoom: 8,
+	});
+	let layer_state_road_ticks = new VectorLayer({
+		source: state_road_only_vector_source,
+		style: new Style({
+			renderer:custom_renderer_with_SLK_ticks(map)
+		}),
+		minZoom: 12,
+	});
+	
+	return [layer_state_road, layer_state_road_ticks]
+}
