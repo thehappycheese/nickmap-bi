@@ -1,0 +1,8 @@
+#nickmap-controls-container{
+    width:5em;
+    height:5em;
+    border-radius: 10px;
+    padding:5px;
+    margin:5px;
+    background-color: rgba(0,0,0,0.7);
+}

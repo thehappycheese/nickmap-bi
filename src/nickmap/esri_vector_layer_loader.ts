@@ -56,7 +56,8 @@ export class esri_vector_source extends VectorSource {
 			spatialRel: "esriSpatialRelIntersects",
 			geometryType: "esriGeometryEnvelope",
 			where: sql_filter,
-			...url_params
+			...url_params,
+			orderByFields: "OBJECTID", // results are paged in some garbage random order without this
 		})
 		this.fixed_url_component = urljoin(service_url, layer_number.toString(), "query", "?" + params.toString());
 		this.get_layer_metadata(urljoin(service_url, layer_number.toString(), "?f=json"));
@@ -77,8 +78,8 @@ export class esri_vector_source extends VectorSource {
 
 	transfrom_feature_properties(feature_properties: { [key: string]: any }) {
 		let new_attributes = {};
-		for (let key in feature_properties) {
-			let value = feature_properties[key];
+		for (let [key, value] of Object.entries(feature_properties)) {
+			//let value = feature_properties[key];
 			if (key === "geometry") continue;
 			if (value === null) continue;
 			let column_meta = this?.true_meta_fields?.find(cd => cd.name == key) ?? this?.field_metas?.find(cd => cd.name == key) ?? {};

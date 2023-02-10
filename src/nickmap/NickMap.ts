@@ -2,72 +2,75 @@ import GeoJSON from 'ol/format/GeoJSON';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 import Map from 'ol/Map';
-import { TileArcGISRest } from "ol/source";
+
 import VectorSource from 'ol/source/Vector';
 import XYZ from 'ol/source/XYZ';
 import Stroke from 'ol/style/Stroke';
 import Style from 'ol/style/Style';
 import View from 'ol/View';
 import { esri_vector_source } from './esri_vector_layer_loader';
-import { get_road_network_layers } from './road_network';
+
+import {
+    layer_state_road,
+    get_layer_state_road_ticks,
+    layer_open_street_map,
+    layer_wmts,
+    layer_arcgis_rest,
+} from './layers'
 import {Group as LayerGroup} from 'ol/layer';
 import Collection from 'ol/Collection';
-import Control from 'ol/control/Control';
+import {Control, defaults as get_default_controls} from 'ol/control';
+import { build_nickmap_controls as build_nickmap_control } from './build_nickmap_controls';
+import "./nickmap_style.css";
 
 
 export default class NickMap{ 
     feature_count_status:HTMLDivElement;
-
-    layer_open_street_maps = new TileLayer({
-        source: new XYZ({
-            url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            crossOrigin: "anonymous",
-        }),
-    });
-    layer_wmts:TileLayer<XYZ> = new TileLayer({
-        visible:false,
-        source: new XYZ({})
-    });
-    layer_arcgis_rest:TileLayer<TileArcGISRest> = new TileLayer({
-        visible:false,
-        source:new TileArcGISRest({})
-    });
-    vector_source_data:VectorSource = new VectorSource();
-    vector_layer_data = new VectorLayer({
-        source:this.vector_source_data,
-        style:(item) => new Style({
-            stroke:new Stroke({
-                width:2.5,
-                color:item.getProperties()["colour"]
+    
+    
+    
+    vector_source_data:VectorSource;
+    vector_layer_data:VectorLayer<VectorSource>;
+    road_network_layer_group:LayerGroup;
+    map:Map;
+    
+    constructor(dom_target?:string|HTMLElement|undefined){
+        // layers used to display PowerBI data
+        this.vector_source_data = new VectorSource();
+        this.vector_layer_data = new VectorLayer({
+            source:this.vector_source_data,
+            style:(item) => new Style({
+                stroke:new Stroke({
+                    width:2.5,
+                    color:item.getProperties()["colour"]
+                })
             })
         })
-    })
-    road_network_layer_group = new LayerGroup();
-    map = new Map({
-        layers: [
+        // Build map
+        this.map = new Map({});
+        this.road_network_layer_group = new LayerGroup({
+            layers:[
+                layer_state_road,
+                get_layer_state_road_ticks(this.map),
+            ]
+        });
+        this.map.setLayers(new Collection([
             new LayerGroup({
                 layers:[
-                    this.layer_open_street_maps,
-                    this.layer_arcgis_rest,
-                    this.layer_wmts,
+                    layer_open_street_map,
+                    layer_arcgis_rest,
+                    layer_wmts,
                 ]
             }),
             this.road_network_layer_group,
             this.vector_layer_data,
-        ],
-        view: new View({
-            center: [0, 0],
-            zoom: 2
-        })
-    });
-    // Due to nasty circular dependency caused by OpenLayers lacklustre custom renderer api
-    // the road network layer must be added to the map after the map is constructed
-    layer_road_network:VectorLayer<esri_vector_source>;
-    layer_road_network_ticks:VectorLayer<esri_vector_source>;
-    
-    constructor(dom_target?:string|HTMLElement|undefined){
-        [this.layer_road_network, this.layer_road_network_ticks] = get_road_network_layers(this.map)
-        this.road_network_layer_group.setLayers(new Collection([this.layer_road_network, this.layer_road_network_ticks]))
+        ]))
+        this.map.setView(new View({
+            center: [12900824.756597541, -3758196.7323907884],
+            zoom: 12,
+        }))
+        this.map.addControl(build_nickmap_control())
+        
         if(dom_target){
             this.set_dom_target(dom_target)
         }
@@ -122,18 +125,18 @@ export default class NickMap{
     }
     set_wmts_layer(url:string, show:boolean){
         if (url && show){
-            this.layer_wmts.getSource().setUrl(url)
-            this.layer_wmts.setVisible(true)
+            layer_wmts.getSource().setUrl(url)
+            layer_wmts.setVisible(true)
         }else{
-            this.layer_wmts.setVisible(false)
+            layer_wmts.setVisible(false)
         }
     }
     set_arcgis_rest_layer(url:string, show:boolean){
         if (url && show){
-            this.layer_arcgis_rest.getSource().setUrl(url)
-            this.layer_arcgis_rest.setVisible(true)
+            layer_arcgis_rest.getSource().setUrl(url)
+            layer_arcgis_rest.setVisible(true)
         }else{
-            this.layer_arcgis_rest.setVisible(false)
+            layer_arcgis_rest.setVisible(false)
         }
     }
 }

@@ -6,11 +6,11 @@ import { Vector as VectorLayer } from 'ol/layer';
 import { toContext } from 'ol/render'
 import LineString from 'ol/geom/LineString'
 
-import { esri_vector_source } from './esri_vector_layer_loader';
+import { esri_vector_source } from '../esri_vector_layer_loader';
 import {getVectorContext} from 'ol/render';
 
-import { linestring_measure, linestring_ticks } from './nicks_line_tools';
-import Vector2 from './Vector2';
+import { linestring_measure, linestring_ticks } from '../nicks_line_tools';
+import Vector2 from '../Vector2';
 
 // const NetworkTypeEnum = {
 // 	'Main Roads Controlled Path': 0,
@@ -139,15 +139,14 @@ let custom_render_tick_text = new Text({
 
 // Cannot use pixel coordinates; we need real distances and un-simplified geometry.
 let custom_renderer_with_SLK_ticks:(map:Map)=>RenderFunction = (map:Map) => (_pixelCoordinates, state) => {
-	// There are a lot of bugs when the pixle ratio is not 1
+	// There are a lot of bugs when the pixel ratio is not 1
+	// (had issues several versions of open layers ago... maybe no problems now)
 	let pixel_ratio = window.devicePixelRatio ?? 1;
 	var context = state.context;
 	
 
 	let canvas_size_x = context.canvas.width / pixel_ratio;
 	let canvas_size_y = context.canvas.height / pixel_ratio;
-
-	state.geometry.getCoordinates()
 
 	let coords = state.geometry.getCoordinates()?.map(item => map.getPixelFromCoordinateInternal(item)) ?? [];
 	var network_type = state.feature.get("NETWORK_TYPE");
@@ -216,19 +215,21 @@ let custom_renderer_with_SLK_ticks:(map:Map)=>RenderFunction = (map:Map) => (_pi
 	context.restore();
 }
 
-export function get_road_network_layers(map) {
-	let layer_state_road = new VectorLayer({
-		source: state_road_only_vector_source,
-		style: state_road_vector_layer_style_function,
-		minZoom: 8,
-	});
-	let layer_state_road_ticks = new VectorLayer({
-		source: state_road_only_vector_source,
-		style: new Style({
-			renderer:custom_renderer_with_SLK_ticks(map)
-		}),
-		minZoom: 12,
-	});
-	
-	return [layer_state_road, layer_state_road_ticks]
-}
+
+export let layer_state_road = new VectorLayer({
+	source: state_road_only_vector_source,
+	style: state_road_vector_layer_style_function,
+	minZoom: 8,
+});
+/**
+ * Due to an irritating problem
+ * @param map Due to an
+ * @returns 
+ */
+export let get_layer_state_road_ticks = map => new VectorLayer({
+	source: state_road_only_vector_source,
+	style: new Style({
+		renderer:custom_renderer_with_SLK_ticks(map)
+	}),
+	minZoom: 12,
+});
