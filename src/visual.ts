@@ -25,10 +25,10 @@ export class Visual implements IVisual {
         console.log('Visual constructor', options);
         this.formattingSettingsService = new FormattingSettingsService();
         this.target = options.element;
-        if (document){
-            this.nickmap = new NickMap(this.target);
+        if (document && this.target){
+            this.nickmap = new NickMap(this.target, options.host);
         }else{
-            console.log("Why construct without document???")
+            console.log("Why construct without document or target???")
         }
     }
 

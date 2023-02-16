@@ -1,8 +1,67 @@
 #nickmap-controls-container{
-    width:5em;
-    height:5em;
-    border-radius: 10px;
-    padding:5px;
-    margin:5px;
+    width:fit-content;
+    max-width:20em;
+    border-radius: 0.6em;
+    margin: 0.3em;
     background-color: rgba(0,0,0,0.7);
+    display:grid;
+    grid-template-rows: auto 1fr;
+    color:seashell;
+    overflow: hidden;
+    border:1px solid #555;
+}
+
+
+#nickmap-controls-collapsible-body{
+    border-top:1px solid #555;
+    padding:0 0.6em;
+    overflow: hidden;
+    display:none;
+    animation: reveal-reverse 0.5s normal;
+}
+
+#nickmap-controls-collapsible-body.expanded {
+    padding:0.6em;
+    display:block;
+}
+
+
+#nickmap-controls-container-title{
+    display:grid;
+    grid-template-columns: 4em 1fr;
+    gap    :0.6em;
+    padding:0.6em;
+    line-height: 1.2em;
+    background-color: #222;
+}
+
+
+#nickmap-controls-other-map-button-container{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:   0.6em;
+    height:1.8em;
+}
+#nickmap-controls-open-in-google-button{
+    height:100%;
+    background-image: url('../../assets/google_maps.png');
+    background-repeat: no-repeat;
+    background-position-x: center;
+    background-position-y: center;
+}
+
+#nickmap-controls-pegman{
+    pointer-events:all;
+    background-image: url('../../assets/google_pegman.png');
+    background-repeat: no-repeat;
+    background-position-x: center;
+    background-position-y: center;
+    cursor:grab;
+}
+#nickmap-controls-pegman:hover{
+    background-image: url('../../assets/google_pegman_liftoff.png');
+    background-color:rgba(255,255,255,0.4);
+}
+#nickmap-controls-pegman:active{
+    cursor: grabbing;
 }

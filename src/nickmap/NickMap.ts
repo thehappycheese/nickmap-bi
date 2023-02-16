@@ -19,22 +19,20 @@ import {
 } from './layers'
 import {Group as LayerGroup} from 'ol/layer';
 import Collection from 'ol/Collection';
-import {Control, defaults as get_default_controls} from 'ol/control';
-import { build_nickmap_controls as build_nickmap_control } from './build_nickmap_controls';
+import {Control, defaults as get_default_controls, Rotate, ScaleLine} from 'ol/control';
+import { NickMapControls } from './NickMapControls';
 import "./nickmap_style.css";
+import powerbi from "powerbi-visuals-api";
+import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 
-
-export default class NickMap{ 
-    feature_count_status:HTMLDivElement;
-    
-    
-    
+export default class NickMap{
     vector_source_data:VectorSource;
     vector_layer_data:VectorLayer<VectorSource>;
     road_network_layer_group:LayerGroup;
     map:Map;
+    controls: NickMapControls;
     
-    constructor(dom_target?:string|HTMLElement|undefined){
+    constructor(dom_target:string|HTMLElement, host:IVisualHost){
         // layers used to display PowerBI data
         this.vector_source_data = new VectorSource();
         this.vector_layer_data = new VectorLayer({
@@ -47,7 +45,10 @@ export default class NickMap{
             })
         })
         // Build map
-        this.map = new Map({});
+        this.map = new Map({
+            target:dom_target,
+            controls:[new Rotate(), new ScaleLine()]
+        });
         this.road_network_layer_group = new LayerGroup({
             layers:[
                 layer_state_road,
@@ -67,36 +68,41 @@ export default class NickMap{
         ]))
         this.map.setView(new View({
             center: [12900824.756597541, -3758196.7323907884],
-            zoom: 12,
+            zoom: 8,
         }))
-        this.map.addControl(build_nickmap_control())
-        
-        if(dom_target){
-            this.set_dom_target(dom_target)
-        }
-    }
 
+        this.controls = new NickMapControls(this.map, host)
+        this.map.addControl(this.controls.control)
+
+        this.map.getViewport().addEventListener("dragenter",function(event){
+            event.dataTransfer.dropEffect = "move";
+        })
+        this.map.getViewport().addEventListener("dragover",function(event){
+            event.preventDefault();
+        })
+        this.map.getViewport().addEventListener("drop", function(event){
+            if (event.dataTransfer.getData("Text")==="the pegman commeth!"){
+                // TODO:
+                // let rec = event.target.getBoundingClientRect();
+                // let px = [
+                //     event.clientX - rec.left,
+                //     event.clientY - rec.top
+                // ];
+                // let loc = map.getCoordinateFromPixel(px)
+                // goto_google_street_view(loc);
+            }
+        });//,{capture:true})
+
+        this.controls.set_version_display("v2022.12.02 (3.0.1) NickMap BI (TEST VERSION - Some Features not working)")
+    }
     set_dom_target(dom_target:string|HTMLElement){
         this.map.setTarget(dom_target)
-        let version_display_control = document.createElement("div");
-		version_display_control.setAttribute("id","version_display_control")
-		this.map.addControl(new Control({
-			element: version_display_control,
-		}));
-        let version_text = document.createElement("div");
-		version_text.setAttribute("id","version_text");
-		version_text.innerHTML = "v2022.12.02 (3.0.1) NickMap BI (TEST VERSION - Some Features not working)"
-		version_display_control.appendChild(version_text);
-        this.feature_count_status = document.createElement("div");
-		this.feature_count_status.setAttribute("id","null_text");
-		this.feature_count_status.innerHTML = ""
-		version_display_control.appendChild(this.feature_count_status);
     }
     update_render_count(count_features:number, count_null:number){
         if(count_null){
-            this.feature_count_status.innerHTML = `Showing ${count_features-count_null} of ${count_features}. <span style="color:#822;">Some rows were not rendered due to invalid road_number, slk_from or slk_to.</span>`
+            this.controls.set_status(`Showing ${count_features-count_null} of ${count_features}. <span style="color:#822;">Some rows were not rendered due to invalid road_number, slk_from or slk_to.</span>`)
         }else{
-            this.feature_count_status.innerHTML = `Showing ${count_features} features`
+            this.controls.set_status(`Showing ${count_features} features`)
         }
     }
     replace_features(geojson:{type:"FeatureCollection", features:any[]}, colours:string[]){
