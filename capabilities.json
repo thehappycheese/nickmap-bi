@@ -116,11 +116,7 @@
             "name": "WebAccess",
             "essential": true,
             "parameters": [
-                "https://linref.thehappycheese.com",
-                "https://tile.openstreetmap.org",
-                "http://api.metromap.com.au/",
-                "https://imageserver.mrwa.wa.gov.au",
-                "https://mrgis.mainroads.wa.gov.au"
+                "*"
             ]
         }
     ],
