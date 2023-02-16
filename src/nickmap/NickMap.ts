@@ -21,6 +21,7 @@ import {Group as LayerGroup} from 'ol/layer';
 import Collection from 'ol/Collection';
 import {Control, defaults as get_default_controls, Rotate, ScaleLine} from 'ol/control';
 import { NickMapControls } from './NickMapControls';
+import {get_NickMapControls} from './NickMapControlsReact'
 import "./nickmap_style.css";
 import powerbi from "powerbi-visuals-api";
 import IVisualHost = powerbi.extensibility.visual.IVisualHost;
@@ -30,7 +31,7 @@ export default class NickMap{
     vector_layer_data:VectorLayer<VectorSource>;
     road_network_layer_group:LayerGroup;
     map:Map;
-    controls: NickMapControls;
+    controls:any;
     
     constructor(dom_target:string|HTMLElement, host:IVisualHost){
         // layers used to display PowerBI data
@@ -71,8 +72,9 @@ export default class NickMap{
             zoom: 8,
         }))
 
-        this.controls = new NickMapControls(this.map, host)
-        this.map.addControl(this.controls.control)
+        //this.controls = new NickMapControls(this.map, host)
+        this.controls = get_NickMapControls(this.map, host);
+        this.map.addControl(this.controls)
 
         this.map.getViewport().addEventListener("dragenter",function(event){
             event.dataTransfer.dropEffect = "move";
