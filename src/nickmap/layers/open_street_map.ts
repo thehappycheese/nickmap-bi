@@ -7,3 +7,12 @@ export const layer_open_street_map = new TileLayer({
         crossOrigin: "anonymous",
     }),
 });
+
+layer_open_street_map.on('prerender', function (evt) {
+    (evt.context as CanvasRenderingContext2D).filter
+        = "brightness(90%) grayscale(30%)";
+});
+layer_open_street_map.on('postrender', function (evt) {
+    (evt.context as CanvasRenderingContext2D).filter
+        = "none";
+});

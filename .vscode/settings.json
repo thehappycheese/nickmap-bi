@@ -1,8 +1,10 @@
 {
     "cSpell.words": [
+		"arcgis",
 		"color",
 		"nickmap",
-		"powerbi"
+		"powerbi",
+		"wmts"
 	],
     "json.schemas": [
 		{

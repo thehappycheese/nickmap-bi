@@ -3,9 +3,7 @@ import {toLonLat} from "ol/proj"
 import powerbi from "powerbi-visuals-api";
 import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 
-export function goto_google_maps(map:OpenLayersMap, host:IVisualHost){
-    let center = map.getView().getCenter();
-    let zoom = map.getView().getZoom();
+export function goto_google_maps(center:number[], zoom:number, host:IVisualHost){
     if (center===undefined){
         // TODO: fail silently, like a fish
         return

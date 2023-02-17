@@ -16,6 +16,6 @@
         ]
     },
     "files": [
-        "./src/visual.ts", "src/nickmap/NickMapControls.ts"
+        "src/visual.tsx"
     ]
 }

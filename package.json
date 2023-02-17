@@ -21,6 +21,7 @@
     "ol-layerswitcher": "^4.1.0",
     "powerbi-visuals-api": "5.1.0",
     "powerbi-visuals-utils-formattingmodel": "5.0.0",
+    "powerbi-visuals-utils-tooltiputils": "^2.5.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "url-join": "^5.0.0"
