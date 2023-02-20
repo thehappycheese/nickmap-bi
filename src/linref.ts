@@ -1,3 +1,4 @@
+import { NickmapFeatureCollection_ServerResponse } from "./NickmapFeatures";
 
 // =========== Helper functions: ===========
 let CWY_LOOKUP = {
@@ -38,22 +39,15 @@ interface Response_Feature_Type {
         coordinates:[number, number][][]
     }
 }
+
+
 export async function batch_requests(iter:Iterable<{
     road_number: string,
     slk_from: number,
     slk_to: number,
     offset?: number,
     cwy?: string
-}>): Promise<{
-    type:"FeatureCollection",
-    features: {
-        type:"Feature",
-        geometry:{
-            type:"MultiLineString",
-            coordinates:[number, number][][]
-        }
-    }[]
-}> {
+}>): Promise<NickmapFeatureCollection_ServerResponse> {
     
     let request_body_parts: Uint8Array[] = [];
     let request_body_byte_length = 0;

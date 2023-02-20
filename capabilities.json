@@ -93,6 +93,11 @@
                 "url_tile_arcgis":{"type": {"text":true}},
                 "url_tile_arcgis_show":{"type": {"bool":true}}
             }
+        },
+        "map_behaviour": {
+            "properties": {
+                "auto_zoom":{"type": {"bool":true}}
+            }
         }
     },
     "dataViewMappings": [

@@ -1,65 +1,90 @@
-import GeoJSON from 'ol/format/GeoJSON';
-import VectorLayer from 'ol/layer/Vector';
 import Map from 'ol/Map';
-
+import {Select, DragBox} from 'ol/interaction';
+import {platformModifierKeyOnly} from 'ol/events/condition';
+import GeoJSON from 'ol/format/GeoJSON';
+import { Group as LayerGroup } from 'ol/layer';
+import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import Stroke from 'ol/style/Stroke';
 import Style from 'ol/style/Style';
 import View from 'ol/View';
-
-import {
-    layer_state_road,
-    get_layer_state_road_ticks,
-    layer_open_street_map,
-    layer_wmts,
-    layer_arcgis_rest,
-} from './layers'
-import {Group as LayerGroup} from 'ol/layer';
 import Collection from 'ol/Collection';
-import {Control, defaults as get_default_controls, Rotate, ScaleLine} from 'ol/control';
-import { NickMapControls } from './NickMapControls';
-import {goto_google_maps, goto_google_street_view} from './util/goto_google'
-import "./nickmap_style.css";
+import { Rotate, ScaleLine } from 'ol/control';
+import { fromLonLat } from 'ol/proj'; 
+
 import powerbi from "powerbi-visuals-api";
-import IVisualHost = powerbi.extensibility.visual.IVisualHost;
+
 import { useEffect, useRef } from 'react';
 
+import {
+    get_layer_state_road_ticks,
+    layer_arcgis_rest,
+    layer_open_street_map,
+    layer_state_road,
+    layer_wmts
+} from './layers';
+
+import { NickMapControls } from './NickMapControls';
+import "./nickmap_style.css";
+import { goto_google_maps, goto_google_street_view } from './util/goto_google';
+import IVisualHost = powerbi.extensibility.visual.IVisualHost;
+
 import * as React from "react";
-import * as ReactDOM from "react-dom";
+import { NickmapFeatureCollection } from '../NickmapFeatures';
+import { map } from 'd3';
+import { Projection } from 'ol/proj';
+import { zoom_to_road_slk_state_type } from './zoom_to_road_slk_state_type';
 
 type NickMapProps = {
-    host:IVisualHost,
-    children:any[],
-    layer_wmts_url:string,
-    layer_wmts_show:boolean,
-    set_layer_wmts_show:(new_value:boolean)=>void,
+    
+    children:any[]
+    version_text:string
+    host:IVisualHost // good change to try context provider
 
-    layer_arcgis_rest_url:string,
-    layer_arcgis_rest_show:boolean,
-    set_layer_arcgis_rest_show:(new_value:boolean)=>void,
+    layer_wmts_url:string
+    layer_wmts_show:boolean
+    set_layer_wmts_show:(new_value:boolean)=>void
+
+    layer_arcgis_rest_url:string
+    layer_arcgis_rest_show:boolean
+    set_layer_arcgis_rest_show:(new_value:boolean)=>void
+
+    feature_collection:NickmapFeatureCollection
+    feature_collection_request_count:number
+
+    auto_zoom:boolean
+    set_auto_zoom:(new_value:boolean)=>void
+
+    selection:powerbi.extensibility.ISelectionId[],
+    set_selection:(new_value:powerbi.extensibility.ISelectionId[])=>void
 }
 
-export function NickMap(props:NickMapProps){
+const default_map_view_settings = {
+    zoom: 8,
+    center: [12900824.756597541, -3758196.7323907884],
+};
 
+export function NickMap(props:NickMapProps){
+    const [status_text, set_status_text] = React.useState("");
+    const [zoom_to_road_slk_state, set_zoom_to_road_slk_state] = React.useState<zoom_to_road_slk_state_type>({type:"IDLE"})
+    const vector_source_data_ref = useRef<VectorSource>(new VectorSource({}))
     const map_root_ref = useRef<HTMLDivElement>();
+    const select_interaction_ref = useRef<Select>(null)
     const map_ref = useRef(new Map({
         controls:[
             new Rotate(),
             new ScaleLine()
         ],
-        view:new View({
-            center: [12900824.756597541, -3758196.7323907884],
-            zoom: 8,
-        })
+        view:new View(default_map_view_settings)
     }))
-    
-    
-    useEffect(()=>{ // Mount
+    // =====
+    // MOUNT
+    // =====
+    useEffect(()=>{
         let map = map_ref.current;
         map.setTarget(map_root_ref.current);
-        let vector_source_data = new VectorSource({});
         let vector_layer_data = new VectorLayer({
-            source:vector_source_data,
+            source:vector_source_data_ref.current,
             style:(item) => new Style({
                 stroke:new Stroke({
                     width:2.5,
@@ -67,6 +92,73 @@ export function NickMap(props:NickMapProps){
                 })
             })
         })
+        select_interaction_ref.current = new Select({
+            layers:[vector_layer_data],
+            style:item => [
+                new Style({
+                    stroke:new Stroke({
+                        width:8,
+                        color:"white"
+                    })
+                }),
+                new Style({
+                    stroke:new Stroke({
+                        width:2.5,
+                        color:item.getProperties()["colour"]
+                    })
+                })
+            ]
+        });
+        map.addInteraction(select_interaction_ref.current);
+        const drag_interaction = new DragBox({condition:platformModifierKeyOnly})
+        map.addInteraction(drag_interaction);
+        drag_interaction.on('boxend', function () {
+            const extent = drag_interaction.getGeometry().getExtent();
+            const boxFeatures = vector_source_data_ref.current
+                .getFeaturesInExtent(extent)
+                .filter((feature) => feature.getGeometry().intersectsExtent(extent));
+            // features that intersect the box geometry are added to the
+            // collection of selected features
+
+            // if the view is not obliquely rotated the box geometry and
+            // its extent are equalivalent so intersecting features can
+            // be added directly to the collection
+            const rotation = map.getView().getRotation();
+            const oblique = rotation % (Math.PI / 2) !== 0;
+
+            // when the view is obliquely rotated the box extent will
+            // exceed its geometry so both the box and the candidate
+            // feature geometries are rotated around a common anchor
+            // to confirm that, with the box geometry aligned with its
+            // extent, the geometries intersect
+            if (oblique) {
+                const anchor = [0, 0];
+                const geometry = drag_interaction.getGeometry().clone();
+                geometry.rotate(-rotation, anchor);
+                const extent = geometry.getExtent();
+                boxFeatures.forEach(function (feature) {
+                    const geometry = feature.getGeometry().clone();
+                    geometry.rotate(-rotation, anchor);
+                    if (geometry.intersectsExtent(extent)) {
+                        select_interaction_ref.current.getFeatures().push(feature);
+                        props.set_selection(select_interaction_ref.current.getFeatures().getArray().map(item=>item.get("selection_id")))
+                    }
+                });
+            } else {
+                select_interaction_ref.current.getFeatures().extend(boxFeatures);
+                props.set_selection(select_interaction_ref.current.getFeatures().getArray().map(item=>item.get("selection_id")))
+            }
+        });
+        drag_interaction.on('boxstart', function () {
+            select_interaction_ref.current.getFeatures().clear();
+        });
+        select_interaction_ref.current.on("select", e => {
+            if((e.mapBrowserEvent.originalEvent as MouseEvent).isTrusted) // TODO: is this check needed?
+            //console.log("TODO MOUNT - Select Interaction on Select")
+            props.set_selection(e.selected.map(item=>item.get("selection_id")))
+        })
+        
+        
         // Build map
         let road_network_layer_group = new LayerGroup({
             layers:[
@@ -74,6 +166,7 @@ export function NickMap(props:NickMapProps){
                 get_layer_state_road_ticks(map),
             ]
         });
+        
         map.setLayers(new Collection([
             new LayerGroup({
                 layers:[
@@ -104,9 +197,27 @@ export function NickMap(props:NickMapProps){
                 goto_google_street_view(loc, props.host);
             }
         });
-    },[]);// End Mount
+        set_status_text(build_status_feature_count(props.feature_collection.features.length,props.feature_collection_request_count))
+        render_features_helper(vector_source_data_ref.current, props.feature_collection, map_ref.current);
+    },[]);
 
+    // =====================
+    // SYNCHRONIZE SELECTION
+    // =====================
+    // useEffect(()=>{
+    //     if(!select_interaction_ref.current) return; // TODO: check if this happens... it should not.
+    //     let selected_features = select_interaction_ref.current.getFeatures()
+        
+    //     selected_features.clear()
+    //     for(let feature_selection_id of props.selection){
+    //         console.log("TODO: SYNCHRONISE SELECTION")
+    //         //selected_features.push(vector_source_data_ref.current.getFeatureById(feature_selection_id as any))
+    //     }
+    // },[props.selection, props.set_selection, select_interaction_ref.current,vector_source_data_ref.current])
 
+    // ============================
+    // WMTS RASTER LAYER VISIBILITY
+    // ============================
     useEffect(()=>{
         if (props.layer_wmts_url && props.layer_wmts_show){
             layer_wmts.getSource().setUrl(props.layer_wmts_url)
@@ -116,6 +227,9 @@ export function NickMap(props:NickMapProps){
         }
     },[props.layer_wmts_url, props.layer_wmts_show])
 
+    // ==============================
+    // ARCGIS RASTER LAYER VISIBILITY
+    // ==============================
     useEffect(()=>{
         if (props.layer_arcgis_rest_url && props.layer_arcgis_rest_show){
             layer_arcgis_rest.getSource().setUrl(props.layer_arcgis_rest_url)
@@ -125,12 +239,63 @@ export function NickMap(props:NickMapProps){
         }
     },[props.layer_arcgis_rest_url, props.layer_arcgis_rest_show])
 
-    
+    // =======================
+    // UPDATE VISIBLE FEATURES
+    // =======================
+    useEffect(()=>{
+        render_features_helper(
+            vector_source_data_ref.current,
+            props.feature_collection,
+            map_ref.current,
+            props.auto_zoom
+        );
+        set_status_text(build_status_feature_count(props.feature_collection.features.length,props.feature_collection_request_count))
+    },[props.feature_collection])
 
-    return <div id="nickmap-controls-map-container">
+    // ==============
+    // ZOOM TO EXTENT
+    // ==============
+    const zoom_to_extent = React.useCallback(()=>{
+        if(vector_source_data_ref.current.getFeatures().length===0){
+            set_view_properties(map_ref.current, default_map_view_settings.zoom, default_map_view_settings.center)
+        }else{
+            map_ref.current.getView().fit(vector_source_data_ref.current.getExtent())
+        }
+    },[map_ref.current, vector_source_data_ref.current])
+
+    // ==================
+    // ZOOM TO ROAD / SLK
+    // ==================
+    const zoom_to_road_slk = React.useCallback(async (road_number:string, slk:number)=>{
+        console.log(`Zoom to ${road_number} ${slk}`)
+        set_zoom_to_road_slk_state({"type":"PENDING"})
+        let response = await fetch(
+            `https://linref.thehappycheese.com/?road=${road_number}&slk=${slk}&f=latlon`,
+            {
+                mode:"cors"
+            }
+        );
+        if(response.ok){
+            let response_text = await response.text();
+            let [lat,lon] = response_text.split(",");
+            set_view_properties(
+                map_ref.current,
+                props.auto_zoom ? 18 : map_ref.current.getView().getZoom(),
+                fromLonLat([parseFloat(lon),parseFloat(lat)])
+            )
+            set_zoom_to_road_slk_state({type:"SUCCESS"})
+        }else{
+            console.log(`FAILED: Zoom to ${road_number} ${slk}`)
+            set_zoom_to_road_slk_state({type:"FAILED", reason:`${response.status} ${response.statusText}`})
+            // TODO: notify user
+        }
+    },[map_ref.current, set_zoom_to_road_slk_state])
+
+    // ======
+    // RENDER
+    // ======
+    return <div className="nickmap-controls-map-container">
         <NickMapControls
-            status_text="status"
-            version_display="version"
             on_go_to_google_maps={()=>{
                 let center = map_ref.current.getView().getCenter();
                 let zoom = map_ref.current.getView().getZoom();
@@ -144,15 +309,59 @@ export function NickMap(props:NickMapProps){
             layer_arcgis_rest_url={props.layer_arcgis_rest_url}
             layer_arcgis_rest_show={props.layer_arcgis_rest_show}
             set_layer_arcgis_rest_show={props.set_layer_arcgis_rest_show}
+            
+            on_zoom_to_extent={zoom_to_extent}
+            on_zoom_to_road_slk={zoom_to_road_slk}
+            zoom_to_road_slk_state={zoom_to_road_slk_state}
+            auto_zoom={props.auto_zoom}
+            set_auto_zoom={props.set_auto_zoom}
 
         />
-        <div ref={map_root_ref} id="nickmap-map-host"></div>
+        <div className="nickmap-status-version-display">
+            <div className="nickmap-status-text" title={status_text}>{status_text}</div>
+            <div className="nickmap-version-text" title={props.version_text}>{props.version_text}</div>
+        </div>
+        <div ref={map_root_ref} className="nickmap-map-host"></div>
     </div>
 }
+
+/**
+ * This function is used because `map.getView().setProperties()` does not work as expected
+ * it is pretty annoying
+ */
+function set_view_properties(map:Map, zoom:number, center:number[]){
+    let view = map.getView();
+    view.setZoom(zoom);
+    view.setCenter(center);
+}
+
+function build_status_feature_count(features_count, features_requested_count){
+    if(features_count===features_requested_count){
+        return `Showing ${features_count} features`
+    }else{
+        return `Showing ${features_count} of ${features_requested_count} features`
+    }
+}
+
+function render_features_helper(
+    vector_source_data:VectorSource,
+    feature_collection:NickmapFeatureCollection,
+    map:Map,
+    zoom_to_extent = true
+){
+    vector_source_data.clear()
+    if (feature_collection.features.length > 0){
+        let features = new GeoJSON().readFeatures(feature_collection, {
+            featureProjection:"EPSG:3857", // target: openlayers default projection
+            dataProjection:"EPSG:4326", // source: geojson exclusively uses WGS84 which is known as 4326 in the EPSG system
+        })
+        vector_source_data.addFeatures(features)
+        if(zoom_to_extent){
+            map.getView().fit(vector_source_data.getExtent())
+        }
+    }
+}
 // class defunct{
-//     set_dom_target(dom_target:string|HTMLElement){
-//         this.map.setTarget(dom_target)
-//     }
 //     update_render_count(count_features:number, count_null:number){
 //         if(count_null){
 //             this.controls.set_status(`Showing ${count_features-count_null} of ${count_features}. <span style="color:#822;">Some rows were not rendered due to invalid road_number, slk_from or slk_to.</span>`)
@@ -161,43 +370,9 @@ export function NickMap(props:NickMapProps){
 //         }
 //     }
 //     replace_features(geojson:{type:"FeatureCollection", features:any[]}, colours:string[]){
-//         if(colours.length!==geojson.features.length){
-//             throw `Length mismatch :( ${colours.length} - ${geojson.features.length}`
-//         }
-//         let null_count = 0;
-//         for(let i=0;i<geojson.features.length;i++){
-//             if(geojson.features[i]){
-//                 geojson.features[i].properties = {colour:colours[i]}
-//             }else{
-//                 null_count++;
-//             }
-//         }
+//         
 //         this.update_render_count(geojson.features.length, null_count);
-//         geojson.features = geojson.features.filter(item=>item)
-//         this.vector_source_data.clear();
-//         if (geojson.features.length>0){
-//             let features = new GeoJSON().readFeatures(geojson,{
-//                 featureProjection:"EPSG:3857", // target: openlayers default projection
-//                 dataProjection:"EPSG:4326", // source: geojson exclusively uses WGS84 which is known as 4326 in the EPSG system
-//             })
-//             this.vector_source_data.addFeatures(features)
-//             this.map.getView().fit(this.vector_source_data.getExtent())
-//         }
+//         
 //     }
-//     set_wmts_layer(url:string, show:boolean){
-//         if (url && show){
-//             layer_wmts.getSource().setUrl(url)
-//             layer_wmts.setVisible(true)
-//         }else{
-//             layer_wmts.setVisible(false)
-//         }
-//     }
-//     set_arcgis_rest_layer(url:string, show:boolean){
-//         if (url && show){
-//             layer_arcgis_rest.getSource().setUrl(url)
-//             layer_arcgis_rest.setVisible(true)
-//         }else{
-//             layer_arcgis_rest.setVisible(false)
-//         }
-//     }
+//     
 // }
