@@ -1,0 +1,35 @@
+.nickmap-controls-map-container{
+    height: 100%;
+    overflow:hidden;
+    display:grid;
+}
+
+.nickmap-map-host{
+    display:inline-block;
+}
+
+.nickmap-status-version-display{
+    position:absolute;
+    pointer-events: none;
+    bottom:0;
+    right:0;
+    left:10em;
+    z-index: 9999;
+    display:grid;
+    grid-template-columns: 2fr 1fr;
+    color: #000B;
+}
+.nickmap-status-text{
+    font-size:90%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.nickmap-version-text{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 80%;
+    white-space: nowrap;
+    text-align: right;
+}
+

@@ -114,7 +114,8 @@
                         {"bind": {"to": "slk_from"}},
                         {"bind": {"to": "slk_to"}},
                         {"bind": {"to": "offset"}},
-                        {"bind": {"to": "colour"}}
+                        {"bind": {"to": "colour"}},
+                        {"bind": {"to": "tooltips"}}
                     ]
                 }
             }
@@ -137,7 +138,6 @@
         },
         "roles": [
             "tooltips"
-        ],
-        "supportEnhancedTooltips": true
+        ]
     }
 }

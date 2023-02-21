@@ -15,7 +15,7 @@ import * as ReactDOM from "react-dom";
 
 import { NickMapBIFormattingSettings } from "./settings";
 
-import {iterate_rows_as_dict} from './dataview_table_helpers'
+import {dataview_table_role_column_indices__first, transform_data_view} from './dataview_table_helpers'
 import {batch_requests} from './linref'
 import { zip_arrays} from './util/itertools'
 import { NickmapFeatureCollection } from "./NickmapFeatures";
@@ -24,15 +24,18 @@ export class Visual implements IVisual {
     private react_root: HTMLElement;
     private formattingSettings: NickMapBIFormattingSettings;
     private formattingSettingsService: FormattingSettingsService;
-    private tooltipServiceWrapper: ITooltipServiceWrapper;
     private host: powerbi.extensibility.visual.IVisualHost;
     private pending_settings_changes:{path:string,new_value:any}[];
     private feature_collection: NickmapFeatureCollection;
     private features_requested_count: number;
     private selection_manager: powerbi.extensibility.ISelectionManager;
+    // private storage: powerbi.extensibility.ILocalVisualStorageService; // Cant use this without verifying the visual
     
+    private tooltip_service: powerbi.extensibility.ITooltipService;
+    private tooltip_service_wrapper: ITooltipServiceWrapper;
 
     constructor(options: VisualConstructorOptions) {
+
         this.pending_settings_changes = []
         if (!document || !options.element){
             throw new Error("Visual constructed without DOM???")
@@ -40,7 +43,11 @@ export class Visual implements IVisual {
         this.host = options.host;
         this.react_root = options.element;
         this.selection_manager = this.host.createSelectionManager();
-        this.tooltipServiceWrapper = createTooltipServiceWrapper(options.host.tooltipService, options.element);
+        this.tooltip_service = options.host.tooltipService
+        this.tooltip_service_wrapper = createTooltipServiceWrapper(
+            options.host.tooltipService,
+            options.element
+        );
         this.formattingSettingsService = new FormattingSettingsService();
         this.feature_collection = {type:"FeatureCollection", features:[]};
         this.features_requested_count = 0;
@@ -49,13 +56,14 @@ export class Visual implements IVisual {
     public update(options: VisualUpdateOptions) {
         console.log('Visual update', options);
         
+        
+
         // Extract settings from dataview
         this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(NickMapBIFormattingSettings, options.dataViews);
 
         // Apply pending settings changes;
         try{
             this.apply_async_setting_changes();
-            this.pending_settings_changes = [];
         }catch(e){
             //TODO Fails quietly?
         }
@@ -74,7 +82,7 @@ export class Visual implements IVisual {
         let dataview_table = options.dataViews[0].table;
 
         try{
-            let input_properties = [...iterate_rows_as_dict(dataview_table, this.host)]
+            let input_properties = [...transform_data_view(dataview_table, this.host)]
             batch_requests(input_properties.values()).then(
                 (returned_features)=>{
                     let features_filtered_and_coloured:NickmapFeatureCollection = {
@@ -89,7 +97,8 @@ export class Visual implements IVisual {
                                     id : data_row.selection_id.getKey(),
                                     properties:{
                                         colour       : data_row.colour,
-                                        selection_id:data_row.selection_id
+                                        selection_id : data_row.selection_id,
+                                        tooltips     : data_row.tooltips,
                                     }
                                 }
                             )
@@ -111,9 +120,9 @@ export class Visual implements IVisual {
 
     
     public react_render_call(){
-        console.log(`RENDERED VALUE: map_background_settings.url_wmts_show.value: ${this.formattingSettings.map_background_settings.url_wmts_show.value}`)
-        console.log(`RENDERED VALUE: map_background_settings.url_tile_arcgis_show.value: ${this.formattingSettings.map_background_settings.url_tile_arcgis_show.value}`)
-        console.log(`RENDERED VALUE: map_behaviour_settings.auto_zoom.value: ${this.formattingSettings.map_behaviour_settings.auto_zoom.value}`)
+        // console.log(`RENDERED VALUE: map_background_settings.url_wmts_show.value: ${this.formattingSettings.map_background_settings.url_wmts_show.value}`)
+        // console.log(`RENDERED VALUE: map_background_settings.url_tile_arcgis_show.value: ${this.formattingSettings.map_background_settings.url_tile_arcgis_show.value}`)
+        // console.log(`RENDERED VALUE: map_behaviour_settings.auto_zoom.value: ${this.formattingSettings.map_behaviour_settings.auto_zoom.value}`)
         ReactDOM.render(
             <NickMap
                 host={this.host}
@@ -137,23 +146,30 @@ export class Visual implements IVisual {
 
                 selection={this.selection_manager.getSelectionIds()}
                 set_selection={new_selection_ids=>this.selection_manager.select(new_selection_ids)}
+
+                tooltip_service={this.tooltip_service}
+                tooltip_service_wrapper={this.tooltip_service_wrapper}
             >
                 
-            </NickMap>
-            ,
+            </NickMap>,
             this.react_root
         )
     }
 
     public async_setting_change(path:string, new_value:any){
-        console.log(`PENDING ADD  : '${path}' '${new_value}'`)
-        this.pending_settings_changes.push({path, new_value});
+        //console.log(`PENDING ADD  : '${path}' '${new_value}'`)
+        let index = this.pending_settings_changes.findIndex(item=>item.path===path);
+        if(index > -1){
+            this.pending_settings_changes[index].new_value = new_value;
+        }else{
+            this.pending_settings_changes.push({path, new_value});
+        }
         this.host.refreshHostData();
     }
     public apply_async_setting_changes() {
         
         for(let pending_settings_change of this.pending_settings_changes){
-            console.log(`PENDING APPLY: '${pending_settings_change.path}' '${pending_settings_change.new_value}'`)
+            //console.log(`PENDING APPLY: '${pending_settings_change.path}' '${pending_settings_change.new_value}'`)
             let path = pending_settings_change.path.split(".");
             let pointer = this.formattingSettings;
             for(let attribute of path.slice(0,-1)){
@@ -164,6 +180,7 @@ export class Visual implements IVisual {
     }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {
+        //this.pending_settings_changes = [];
         console.log("getFormattingModel")
         // I think this makes it so that if you change `this.formattingSettings` then the results are returned to the UI? I will test.
         return this.formattingSettingsService.buildFormattingModel(this.formattingSettings);

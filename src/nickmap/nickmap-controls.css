@@ -1,48 +1,11 @@
 
-.nickmap-controls-map-container{
-    height: 100%;
-    overflow:hidden;
-    display:grid;
-}
-
-.nickmap-map-host{
-    display:inline-block;
-}
-
-.nickmap-status-version-display{
-    position:absolute;
-    pointer-events: none;
-    bottom:0;
-    right:0;
-    left:10em;
-    z-index: 9999;
-    display:grid;
-    grid-template-columns: 2fr 1fr;
-    color: #000B;
-}
-
-.nickmap-status-text{
-    font-size:90%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.nickmap-version-text{
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 80%;
-    white-space: nowrap;
-    text-align: right;
-}
-
-
 .nickmap-controls{
     position:absolute;
     width:fit-content;
     box-sizing: border-box;
     max-height:calc(100% - 2 * 0.3em);
     max-width:20em;
-    border-radius: 0.6em;
+    border-radius: 0.3em;
     margin: 0.3em;
     background-color: rgba(0,0,0,0.7);
     display:grid;
@@ -50,33 +13,26 @@
     color:seashell;
     overflow: hidden;
     outline:1px solid #555;
-    
     z-index: 9999;
 }
 
 .nickmap-controls-collapsible-body{
     border-top:1px solid #555;
-    padding:0 0.6em;
+    padding:0.3em;
     overflow-x: hidden;
     overflow-y: auto;
-    display:none;
-    animation: reveal-reverse 0.5s normal;
     margin-bottom:0.2em;
     margin-right:0.2em;
 }
-
-
 .nickmap-controls-collapsible-body::-webkit-scrollbar {
     width: 12px;
 }
-
 .nickmap-controls-collapsible-body::-webkit-scrollbar-track {
     border-radius: 8px;
     background-color: #1f1f1f33;
     border: 1px solid #5c5c5c33;
     box-shadow: inset 0 0 6px rgba(65, 65, 65, 0.3);
 }
-
 .nickmap-controls-collapsible-body::-webkit-scrollbar-thumb {
     border-radius: 8px;
     background-color: #aaaaaa;
@@ -85,10 +41,7 @@
 
 
 
-.nickmap-controls-collapsible-body.expanded {
-    padding:0.6em;
-    display:block;
-}
+
 
 .nickmap-controls-input-grid label{
     display:grid;
@@ -108,22 +61,42 @@
     grid-template-columns: 1fr 5em;
     gap:0.6em;
 }
+.nickmap-controls-zoomto-status{
+    font-size: 80%;
+    grid-column-start: 1;
+    grid-column-end: -1;
+}
+.nickmap-controls-zoomto-status.failed{
+    padding:0.3em;
+    background-color:#FBB8;
+}
+.nickmap-controls-zoomto-status-fail-explanation{
+    background-color: #333;
+    padding:0.3em;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    margin: auto;
+    overflow-y:scroll;
+}
+.nickmap-controls-zoomto-status-fail-explanation li{
+    list-style-type: circle;
+}
 
 .nickmap-controls-container-title{
-    /* display:grid;
-    grid-template-columns: 4em 1fr;
-    gap    :0.6em; */
-    padding:0.6em;
-    line-height: 1.2em;
+    padding:0.3em;
+    line-height: 1em;
     background-color: #222;
 }
 
 
 .nickmap-controls-other-map-button-container{
     display:grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: auto 1fr 1fr;
     gap:   0.6em;
-    height:1.8em;
+    line-height: 1em;
 }
 
 .nickmap-controls-open-in-google-button{

@@ -1,16 +1,16 @@
-import Map from 'ol/Map';
-import {Select, DragBox} from 'ol/interaction';
-import {platformModifierKeyOnly} from 'ol/events/condition';
+import { Map as OpenLayersMap } from 'ol';
+import Collection from 'ol/Collection';
+import { Rotate, ScaleLine } from 'ol/control';
+import { platformModifierKeyOnly } from 'ol/events/condition';
 import GeoJSON from 'ol/format/GeoJSON';
+import { DragBox, Select } from 'ol/interaction';
 import { Group as LayerGroup } from 'ol/layer';
 import VectorLayer from 'ol/layer/Vector';
+import { fromLonLat } from 'ol/proj';
 import VectorSource from 'ol/source/Vector';
 import Stroke from 'ol/style/Stroke';
 import Style from 'ol/style/Style';
 import View from 'ol/View';
-import Collection from 'ol/Collection';
-import { Rotate, ScaleLine } from 'ol/control';
-import { fromLonLat } from 'ol/proj'; 
 
 import powerbi from "powerbi-visuals-api";
 
@@ -24,16 +24,16 @@ import {
     layer_wmts
 } from './layers';
 
+import "./nickmap.css";
 import { NickMapControls } from './NickMapControls';
-import "./nickmap_style.css";
 import { goto_google_maps, goto_google_street_view } from './util/goto_google';
 import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 
 import * as React from "react";
 import { NickmapFeatureCollection } from '../NickmapFeatures';
-import { map } from 'd3';
-import { Projection } from 'ol/proj';
 import { zoom_to_road_slk_state_type } from './zoom_to_road_slk_state_type';
+import { ITooltipServiceWrapper } from 'powerbi-visuals-utils-tooltiputils';
+import { feature_tooltip_items } from '../dataview_table_helpers';
 
 type NickMapProps = {
     
@@ -57,6 +57,9 @@ type NickMapProps = {
 
     selection:powerbi.extensibility.ISelectionId[],
     set_selection:(new_value:powerbi.extensibility.ISelectionId[])=>void
+
+    tooltip_service:powerbi.extensibility.ITooltipService
+    tooltip_service_wrapper: ITooltipServiceWrapper;
 }
 
 const default_map_view_settings = {
@@ -70,13 +73,20 @@ export function NickMap(props:NickMapProps){
     const vector_source_data_ref = useRef<VectorSource>(new VectorSource({}))
     const map_root_ref = useRef<HTMLDivElement>();
     const select_interaction_ref = useRef<Select>(null)
-    const map_ref = useRef(new Map({
+    const map_ref = useRef(new OpenLayersMap({
         controls:[
             new Rotate(),
             new ScaleLine()
         ],
         view:new View(default_map_view_settings)
     }))
+
+    // ===============================
+    // CLEAR SELECTION ON EVERY UPDATE
+    // ===============================
+    if(select_interaction_ref.current){
+        select_interaction_ref.current.getFeatures().clear();
+    }
     // =====
     // MOUNT
     // =====
@@ -112,7 +122,10 @@ export function NickMap(props:NickMapProps){
         map.addInteraction(select_interaction_ref.current);
         const drag_interaction = new DragBox({condition:platformModifierKeyOnly})
         map.addInteraction(drag_interaction);
-        drag_interaction.on('boxend', function () {
+        drag_interaction.on('boxstart', function (event) {
+            select_interaction_ref.current.getFeatures().clear();
+        });
+        drag_interaction.on('boxend', function (event) {
             const extent = drag_interaction.getGeometry().getExtent();
             const boxFeatures = vector_source_data_ref.current
                 .getFeaturesInExtent(extent)
@@ -123,6 +136,7 @@ export function NickMap(props:NickMapProps){
             // if the view is not obliquely rotated the box geometry and
             // its extent are equalivalent so intersecting features can
             // be added directly to the collection
+            debugger
             const rotation = map.getView().getRotation();
             const oblique = rotation % (Math.PI / 2) !== 0;
 
@@ -149,13 +163,29 @@ export function NickMap(props:NickMapProps){
                 props.set_selection(select_interaction_ref.current.getFeatures().getArray().map(item=>item.get("selection_id")))
             }
         });
-        drag_interaction.on('boxstart', function () {
-            select_interaction_ref.current.getFeatures().clear();
-        });
+        
         select_interaction_ref.current.on("select", e => {
             if((e.mapBrowserEvent.originalEvent as MouseEvent).isTrusted) // TODO: is this check needed?
             //console.log("TODO MOUNT - Select Interaction on Select")
             props.set_selection(e.selected.map(item=>item.get("selection_id")))
+            //props.tooltip_service_wrapper.addTooltip()
+            let selected_item_tooltips:feature_tooltip_items[] = e.selected.map(item=>item.get("tooltips"))
+            if(selected_item_tooltips.length===1){
+                props.tooltip_service.show({
+                    coordinates:[
+                        e.mapBrowserEvent.originalEvent.clientX,
+                        e.mapBrowserEvent.originalEvent.clientY
+                    ],
+                    dataItems:selected_item_tooltips[0].map(item=>({
+                        displayName: item.column_name,
+                        value: String(item.value),
+                        color: "",
+                        header: ""
+                    })),
+                    isTouchEvent:e.mapBrowserEvent.originalEvent?.pointerType==="touch",
+                    identities:e.selected.map(item=>item.get("selection_id"))
+                })
+            }
         })
         
         
@@ -257,7 +287,11 @@ export function NickMap(props:NickMapProps){
     // ==============
     const zoom_to_extent = React.useCallback(()=>{
         if(vector_source_data_ref.current.getFeatures().length===0){
-            set_view_properties(map_ref.current, default_map_view_settings.zoom, default_map_view_settings.center)
+            set_view_properties(
+                map_ref.current,
+                default_map_view_settings.zoom,
+                default_map_view_settings.center
+            )
         }else{
             map_ref.current.getView().fit(vector_source_data_ref.current.getExtent())
         }
@@ -280,13 +314,13 @@ export function NickMap(props:NickMapProps){
             let [lat,lon] = response_text.split(",");
             set_view_properties(
                 map_ref.current,
-                props.auto_zoom ? 18 : map_ref.current.getView().getZoom(),
+                18,//props.auto_zoom ? 18 : map_ref.current.getView().getZoom(),
                 fromLonLat([parseFloat(lon),parseFloat(lat)])
             )
             set_zoom_to_road_slk_state({type:"SUCCESS"})
         }else{
-            console.log(`FAILED: Zoom to ${road_number} ${slk}`)
-            set_zoom_to_road_slk_state({type:"FAILED", reason:`${response.status} ${response.statusText}`})
+            console.log(`FAILED: Zoom to ${road_number} ${slk}; Server responded ${response.status} ${response.statusText}`)
+            set_zoom_to_road_slk_state({type:"FAILED", reason:`${road_number} ${slk.toFixed(3)} not found.`})
             // TODO: notify user
         }
     },[map_ref.current, set_zoom_to_road_slk_state])
@@ -329,7 +363,7 @@ export function NickMap(props:NickMapProps){
  * This function is used because `map.getView().setProperties()` does not work as expected
  * it is pretty annoying
  */
-function set_view_properties(map:Map, zoom:number, center:number[]){
+function set_view_properties(map:OpenLayersMap, zoom:number, center:number[]){
     let view = map.getView();
     view.setZoom(zoom);
     view.setCenter(center);
@@ -346,7 +380,7 @@ function build_status_feature_count(features_count, features_requested_count){
 function render_features_helper(
     vector_source_data:VectorSource,
     feature_collection:NickmapFeatureCollection,
-    map:Map,
+    map:OpenLayersMap,
     zoom_to_extent = true
 ){
     vector_source_data.clear()

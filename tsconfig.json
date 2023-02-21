@@ -16,6 +16,6 @@
         ]
     },
     "files": [
-        "src/visual.tsx", "./src/NickmapFeatures.tsx", "./src/nickmap/zoom_to_road_slk_state_type.tsx"
+        "./src/visual.tsx"
     ]
 }
