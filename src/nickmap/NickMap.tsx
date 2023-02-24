@@ -5,8 +5,8 @@ import { platformModifierKeyOnly } from 'ol/events/condition';
 import GeoJSON from 'ol/format/GeoJSON';
 import { DragBox, Select } from 'ol/interaction';
 import { Group as LayerGroup } from 'ol/layer';
-import VectorLayer from 'ol/layer/Vector';
-import { fromLonLat } from 'ol/proj';
+import { Vector as VectorLayer} from 'ol/layer';
+import { clearUserProjection, fromLonLat } from 'ol/proj';
 import VectorSource from 'ol/source/Vector';
 import Stroke from 'ol/style/Stroke';
 import Style from 'ol/style/Style';
@@ -14,7 +14,7 @@ import View from 'ol/View';
 
 import powerbi from "powerbi-visuals-api";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
     get_layer_state_road_ticks,
@@ -34,6 +34,7 @@ import { NickmapFeatureCollection } from '../NickmapFeatures';
 import { zoom_to_road_slk_state_type } from './zoom_to_road_slk_state_type';
 import { ITooltipServiceWrapper } from 'powerbi-visuals-utils-tooltiputils';
 import { feature_tooltip_items } from '../dataview_table_helpers';
+import { road_network_styles } from './layers/road_network';
 
 type NickMapProps = {
     
@@ -41,25 +42,32 @@ type NickMapProps = {
     version_text:string
     host:IVisualHost // good change to try context provider
 
+    layer_road_network_show_initial:boolean
+    layer_road_network_ticks_show_initial:boolean
+    layer_road_network_state_colour:string
+    layer_road_network_psp_colour:string
+
     layer_wmts_url:string
-    layer_wmts_show:boolean
-    set_layer_wmts_show:(new_value:boolean)=>void
+    layer_wmts_show_initial:boolean
 
     layer_arcgis_rest_url:string
-    layer_arcgis_rest_show:boolean
-    set_layer_arcgis_rest_show:(new_value:boolean)=>void
+    layer_arcgis_rest_show_initial:boolean
 
     feature_collection:NickmapFeatureCollection
     feature_collection_request_count:number
 
-    auto_zoom:boolean
-    set_auto_zoom:(new_value:boolean)=>void
+    auto_zoom_initial:boolean
 
-    selection:powerbi.extensibility.ISelectionId[],
-    set_selection:(new_value:powerbi.extensibility.ISelectionId[])=>void
+    // selection:powerbi.extensibility.ISelectionId[],
+    // set_selection:(new_value:powerbi.extensibility.ISelectionId[])=>void
+    selection_manager:powerbi.extensibility.ISelectionManager
 
     tooltip_service:powerbi.extensibility.ITooltipService
-    tooltip_service_wrapper: ITooltipServiceWrapper;
+    tooltip_service_wrapper: ITooltipServiceWrapper
+
+    controls_size:number
+    controls_mode:"Collapsed"|"Expanded"|"Disabled"
+
 }
 
 const default_map_view_settings = {
@@ -68,10 +76,17 @@ const default_map_view_settings = {
 };
 
 export function NickMap(props:NickMapProps){
+    const [auto_zoom, set_auto_zoom] = useState(props.auto_zoom_initial);
+    const [layer_arcgis_rest_show, set_layer_arcgis_rest_show] = useState(props.layer_arcgis_rest_show_initial);
+    const [layer_wmts_show, set_layer_wmts_show] = useState(props.layer_wmts_show_initial);
+    const [layer_road_network_show, set_layer_road_network_show] = useState(props.layer_road_network_show_initial);
+    const [layer_road_network_ticks_show, set_layer_road_network_ticks_show] = useState(props.layer_road_network_ticks_show_initial);
     const [status_text, set_status_text] = React.useState("");
     const [zoom_to_road_slk_state, set_zoom_to_road_slk_state] = React.useState<zoom_to_road_slk_state_type>({type:"IDLE"})
     const vector_source_data_ref = useRef<VectorSource>(new VectorSource({}))
     const map_root_ref = useRef<HTMLDivElement>();
+     // TODO: avoid any
+    const layer_state_road_ticks_ref = useRef<VectorLayer<VectorSource> | null>(null);
     const select_interaction_ref = useRef<Select>(null)
     const map_ref = useRef(new OpenLayersMap({
         controls:[
@@ -97,7 +112,7 @@ export function NickMap(props:NickMapProps){
             source:vector_source_data_ref.current,
             style:(item) => new Style({
                 stroke:new Stroke({
-                    width:2.5,
+                    width:item.getProperties()["line_width"],
                     color:item.getProperties()["colour"]
                 })
             })
@@ -123,7 +138,7 @@ export function NickMap(props:NickMapProps){
         const drag_interaction = new DragBox({condition:platformModifierKeyOnly})
         map.addInteraction(drag_interaction);
         drag_interaction.on('boxstart', function (event) {
-            select_interaction_ref.current.getFeatures().clear();
+            //select_interaction_ref.current.getFeatures().clear();
         });
         drag_interaction.on('boxend', function (event) {
             const extent = drag_interaction.getGeometry().getExtent();
@@ -134,9 +149,9 @@ export function NickMap(props:NickMapProps){
             // collection of selected features
 
             // if the view is not obliquely rotated the box geometry and
-            // its extent are equalivalent so intersecting features can
+            // its extent are equivalent so intersecting features can
             // be added directly to the collection
-            debugger
+            
             const rotation = map.getView().getRotation();
             const oblique = rotation % (Math.PI / 2) !== 0;
 
@@ -155,48 +170,54 @@ export function NickMap(props:NickMapProps){
                     geometry.rotate(-rotation, anchor);
                     if (geometry.intersectsExtent(extent)) {
                         select_interaction_ref.current.getFeatures().push(feature);
-                        props.set_selection(select_interaction_ref.current.getFeatures().getArray().map(item=>item.get("selection_id")))
+                        props.selection_manager.select(select_interaction_ref.current.getFeatures().getArray().map(item=>item.get("selection_id")))
                     }
                 });
             } else {
                 select_interaction_ref.current.getFeatures().extend(boxFeatures);
-                props.set_selection(select_interaction_ref.current.getFeatures().getArray().map(item=>item.get("selection_id")))
+                props.selection_manager.select(select_interaction_ref.current.getFeatures().getArray().map(item=>item.get("selection_id")))
             }
         });
         
         select_interaction_ref.current.on("select", e => {
             if((e.mapBrowserEvent.originalEvent as MouseEvent).isTrusted) // TODO: is this check needed?
             //console.log("TODO MOUNT - Select Interaction on Select")
-            props.set_selection(e.selected.map(item=>item.get("selection_id")))
-            //props.tooltip_service_wrapper.addTooltip()
-            let selected_item_tooltips:feature_tooltip_items[] = e.selected.map(item=>item.get("tooltips"))
-            if(selected_item_tooltips.length===1){
-                props.tooltip_service.show({
-                    coordinates:[
-                        e.mapBrowserEvent.originalEvent.clientX,
-                        e.mapBrowserEvent.originalEvent.clientY
-                    ],
-                    dataItems:selected_item_tooltips[0].map(item=>({
-                        displayName: item.column_name,
-                        value: String(item.value),
-                        color: "",
-                        header: ""
-                    })),
-                    isTouchEvent:e.mapBrowserEvent.originalEvent?.pointerType==="touch",
-                    identities:e.selected.map(item=>item.get("selection_id"))
-                })
-            }
+            props.selection_manager
+                .clear()
+                .then(
+                    ()=>props.selection_manager.select(e.selected.map(item=>item.get("selection_id")))
+                ).then(()=>{
+                    //props.tooltip_service_wrapper.addTooltip()
+                    let selected_item_tooltips:feature_tooltip_items[] = e.selected.map(item=>item.get("tooltips"))
+                    if(selected_item_tooltips.length===1){
+                        props.tooltip_service.show({
+                            coordinates:[
+                                e.mapBrowserEvent.originalEvent.clientX,
+                                e.mapBrowserEvent.originalEvent.clientY
+                            ],
+                            dataItems:selected_item_tooltips[0].map(item=>({
+                                displayName: item.column_name,
+                                value: String(item.value),
+                                color: "",
+                                header: ""
+                            })),
+                            isTouchEvent:e.mapBrowserEvent.originalEvent?.pointerType==="touch",
+                            identities:e.selected.map(item=>item.get("selection_id"))
+                        })
+                    }
+                });
         })
         
-        
-        // Build map
+        // Set up road network layer group
+        layer_state_road_ticks_ref.current = get_layer_state_road_ticks(map)
         let road_network_layer_group = new LayerGroup({
             layers:[
                 layer_state_road,
-                get_layer_state_road_ticks(map),
+                layer_state_road_ticks_ref.current,
             ]
         });
-        
+
+        // Build map
         map.setLayers(new Collection([
             new LayerGroup({
                 layers:[
@@ -231,43 +252,95 @@ export function NickMap(props:NickMapProps){
         render_features_helper(vector_source_data_ref.current, props.feature_collection, map_ref.current);
     },[]);
 
+    // ===============================
+    // ROAD NETWORK STYLE & VISIBILITY
+    // ===============================
+    useEffect(()=>{
+        road_network_styles["State Road"].getStroke().setColor(props.layer_road_network_state_colour)
+    },[props.layer_road_network_state_colour])
+
+    useEffect(()=>{
+        road_network_styles["Main Roads Controlled Path"].getStroke().setColor(props.layer_road_network_psp_colour)
+    },[props.layer_road_network_psp_colour])
+
+    useEffect(()=>{
+        layer_state_road.setVisible(layer_road_network_show);
+    },[layer_road_network_show])
+
+    useEffect(()=>{
+        if(layer_state_road_ticks_ref.current){
+            layer_state_road_ticks_ref.current.setVisible(
+                layer_road_network_ticks_show &&
+                layer_road_network_show
+            );
+        }
+    },[layer_road_network_show, layer_road_network_ticks_show, layer_state_road_ticks_ref.current]);
+
     // =====================
     // SYNCHRONIZE SELECTION
     // =====================
-    // useEffect(()=>{
-    //     if(!select_interaction_ref.current) return; // TODO: check if this happens... it should not.
-    //     let selected_features = select_interaction_ref.current.getFeatures()
-        
-    //     selected_features.clear()
-    //     for(let feature_selection_id of props.selection){
-    //         console.log("TODO: SYNCHRONISE SELECTION")
-    //         //selected_features.push(vector_source_data_ref.current.getFeatureById(feature_selection_id as any))
-    //     }
-    // },[props.selection, props.set_selection, select_interaction_ref.current,vector_source_data_ref.current])
+    //useEffect(()=>{
+        // if(!select_interaction_ref.current) return;
+        // let selected_features = select_interaction_ref.current.getFeatures()
+        // selected_features.clear()
+        // for(let feature_selection_id of props.selection){
+        //     // TODO: this is probably slow
+        //     const found_feature = vector_source_data_ref.current.getFeatures().find(feature=>feature.get("selection_id").equals(feature_selection_id));
+        //     if (found_feature){
+        //         selected_features.push(found_feature)
+        //     }
+        // }
+    //},[(), props.set_selection, select_interaction_ref.current,vector_source_data_ref.current])
+
+    if(props.selection_manager.hasSelection()){
+        if(!select_interaction_ref.current) return;
+        let selected_features = select_interaction_ref.current.getFeatures()
+        selected_features.clear()
+        for(let feature_selection_id of props.selection_manager.getSelectionIds()){
+            // TODO: this is probably slow
+            const found_feature = vector_source_data_ref.current.getFeatures().find(feature=>feature.get("selection_id").equals(feature_selection_id));
+            if (found_feature){
+                selected_features.push(found_feature)
+            }
+        }
+    }
+
 
     // ============================
     // WMTS RASTER LAYER VISIBILITY
     // ============================
     useEffect(()=>{
-        if (props.layer_wmts_url && props.layer_wmts_show){
+        if (props.layer_wmts_url && layer_wmts_show){
             layer_wmts.getSource().setUrl(props.layer_wmts_url)
             layer_wmts.setVisible(true)
         }else{
             layer_wmts.setVisible(false)
         }
-    },[props.layer_wmts_url, props.layer_wmts_show])
+    },[props.layer_wmts_url, layer_wmts_show])
 
     // ==============================
     // ARCGIS RASTER LAYER VISIBILITY
     // ==============================
     useEffect(()=>{
-        if (props.layer_arcgis_rest_url && props.layer_arcgis_rest_show){
+        if (props.layer_arcgis_rest_url && layer_arcgis_rest_show){
             layer_arcgis_rest.getSource().setUrl(props.layer_arcgis_rest_url)
             layer_arcgis_rest.setVisible(true)
         }else{
             layer_arcgis_rest.setVisible(false)
         }
-    },[props.layer_arcgis_rest_url, props.layer_arcgis_rest_show])
+    },[props.layer_arcgis_rest_url, layer_arcgis_rest_show])
+
+    // ============================
+    // ROAD NETWORK LAYER VISIBILITY
+    // ============================
+    useEffect(()=>{
+        if (props.layer_wmts_url && layer_wmts_show){
+            layer_wmts.getSource().setUrl(props.layer_wmts_url)
+            layer_wmts.setVisible(true)
+        }else{
+            layer_wmts.setVisible(false)
+        }
+    },[props.layer_wmts_url, layer_wmts_show])
 
     // =======================
     // UPDATE VISIBLE FEATURES
@@ -277,10 +350,11 @@ export function NickMap(props:NickMapProps){
             vector_source_data_ref.current,
             props.feature_collection,
             map_ref.current,
-            props.auto_zoom
+            props.auto_zoom_initial
         );
         set_status_text(build_status_feature_count(props.feature_collection.features.length,props.feature_collection_request_count))
     },[props.feature_collection])
+
 
     // ==============
     // ZOOM TO EXTENT
@@ -329,31 +403,43 @@ export function NickMap(props:NickMapProps){
     // RENDER
     // ======
     return <div className="nickmap-controls-map-container">
-        <NickMapControls
-            on_go_to_google_maps={()=>{
-                let center = map_ref.current.getView().getCenter();
-                let zoom = map_ref.current.getView().getZoom();
-                goto_google_maps(center, zoom, props.host)
-            }}
+        <div className="nickmap-controls-overlay" style={{fontSize:`${props.controls_size || 100}%`}}>
+            {
+                props.controls_mode !== "Disabled" &&
+                <NickMapControls
+                    on_go_to_google_maps={()=>{
+                        let center = map_ref.current.getView().getCenter();
+                        let zoom = map_ref.current.getView().getZoom();
+                        goto_google_maps(center, zoom, props.host)
+                    }}
 
-            layer_wmts_url={props.layer_wmts_url}
-            layer_wmts_show={props.layer_wmts_show}
-            set_layer_wmts_show={props.set_layer_wmts_show}
+                    layer_wmts_available        = {props.layer_wmts_url!==""}
+                    layer_wmts_show             = {layer_wmts_show}
+                    set_layer_wmts_show         = {set_layer_wmts_show}
 
-            layer_arcgis_rest_url={props.layer_arcgis_rest_url}
-            layer_arcgis_rest_show={props.layer_arcgis_rest_show}
-            set_layer_arcgis_rest_show={props.set_layer_arcgis_rest_show}
-            
-            on_zoom_to_extent={zoom_to_extent}
-            on_zoom_to_road_slk={zoom_to_road_slk}
-            zoom_to_road_slk_state={zoom_to_road_slk_state}
-            auto_zoom={props.auto_zoom}
-            set_auto_zoom={props.set_auto_zoom}
+                    layer_arcgis_rest_available = {props.layer_arcgis_rest_url!==""}
+                    layer_arcgis_rest_show      = {layer_arcgis_rest_show}
+                    set_layer_arcgis_rest_show  = {set_layer_arcgis_rest_show}
 
-        />
-        <div className="nickmap-status-version-display">
-            <div className="nickmap-status-text" title={status_text}>{status_text}</div>
-            <div className="nickmap-version-text" title={props.version_text}>{props.version_text}</div>
+
+                    layer_road_network_show     = {layer_road_network_show}
+                    set_layer_road_network_show = {set_layer_road_network_show}
+                    layer_road_network_ticks_show     = {layer_road_network_ticks_show}
+                    set_layer_road_network_ticks_show = {set_layer_road_network_ticks_show}
+                    
+                    on_zoom_to_extent           = {zoom_to_extent}
+                    on_zoom_to_road_slk         = {zoom_to_road_slk}
+                    zoom_to_road_slk_state      = {zoom_to_road_slk_state}
+                    auto_zoom                   = {auto_zoom}
+                    set_auto_zoom               = {set_auto_zoom}
+
+                    hidden_initial            = {props.controls_mode === 'Collapsed'}
+                />
+            }
+            <div className="nickmap-status-version-display">
+                <div className="nickmap-status-text" title={status_text}>{status_text}</div>
+                <div className="nickmap-version-text" title={props.version_text}>{props.version_text}</div>
+            </div>
         </div>
         <div ref={map_root_ref} className="nickmap-map-host"></div>
     </div>
@@ -395,18 +481,3 @@ function render_features_helper(
         }
     }
 }
-// class defunct{
-//     update_render_count(count_features:number, count_null:number){
-//         if(count_null){
-//             this.controls.set_status(`Showing ${count_features-count_null} of ${count_features}. <span style="color:#822;">Some rows were not rendered due to invalid road_number, slk_from or slk_to.</span>`)
-//         }else{
-//             this.controls.set_status(`Showing ${count_features} features`)
-//         }
-//     }
-//     replace_features(geojson:{type:"FeatureCollection", features:any[]}, colours:string[]){
-//         
-//         this.update_render_count(geojson.features.length, null_count);
-//         
-//     }
-//     
-// }

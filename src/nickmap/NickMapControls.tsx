@@ -10,23 +10,31 @@ pegman_drag_image.setAttribute("src", "data:image/png;charset=utf-8;base64,iVBOR
 type NickMapControlsComponentProps = {
     on_go_to_google_maps:()=>void
     
-    layer_arcgis_rest_url:string
-    layer_arcgis_rest_show:boolean
-    set_layer_arcgis_rest_show:(new_value:boolean)=>void
+    layer_arcgis_rest_available       : boolean
+    layer_arcgis_rest_show            : boolean
+    set_layer_arcgis_rest_show        : (new_value:boolean)=>void
     
-    layer_wmts_url:string
-    layer_wmts_show:boolean
-    set_layer_wmts_show:(new_value:boolean)=>void
+    layer_wmts_available              : boolean
+    layer_wmts_show                   : boolean
+    set_layer_wmts_show               : (new_value:boolean)=>void
 
-    on_zoom_to_extent:()=>void
-    on_zoom_to_road_slk:(road:string, slk:number)=>void
-    zoom_to_road_slk_state:zoom_to_road_slk_state_type
-    auto_zoom:boolean
-    set_auto_zoom:(new_value:boolean)=>void
+    layer_road_network_show           : boolean
+    set_layer_road_network_show       : (new_value:boolean)=>void
+    layer_road_network_ticks_show     : boolean
+    set_layer_road_network_ticks_show : (new_value:boolean)=>void
+
+    on_zoom_to_extent                 : ()=>void
+    on_zoom_to_road_slk               : (road:string, slk:number)=>void
+    zoom_to_road_slk_state            : zoom_to_road_slk_state_type
+
+    auto_zoom                         : boolean
+    set_auto_zoom                     : (new_value:boolean)=>void
+    
+    hidden_initial                  : boolean
 }
 
 export function NickMapControls (props:NickMapControlsComponentProps){
-    let [hidden, set_hidden] = React.useState(false)
+    let [hidden, set_hidden] = React.useState(props.hidden_initial)
     const [zoom_to_road, set_zoom_to_road] = React.useState<string>("")
     const [show_zoomto_fail_explanation, set_show_zoomto_fail_explanation] = React.useState(false);
     const [zoom_to_slk, set_zoom_to_slk] = React.useState<number>(0)
@@ -40,7 +48,11 @@ export function NickMapControls (props:NickMapControlsComponentProps){
             : 
             <div className="nickmap-controls-collapsible-body">
                 <div className="nickmap-controls-other-map-button-container">
-                    <button onClick={()=>set_hidden(true)}>⏶</button>
+                    <button
+                        onClick={()=>set_hidden(true)}
+                    >
+                        ⏶
+                    </button>
                     <button
                         className="nickmap-controls-open-in-google-button"
                         title="Open current view in google maps"
@@ -58,41 +70,59 @@ export function NickMapControls (props:NickMapControlsComponentProps){
                     ></div>
                 </div>
                 <div className="nickmap-controls-input-grid">
+                    <label>
+                        <input
+                            type     = "checkbox"
+                            checked  = {props.layer_road_network_show}
+                            onChange = {event=>props.set_layer_road_network_show(!props.layer_road_network_show)}
+                        />
+                        <div>Show Road Network</div>
+                    </label>
+                    <label>
+                        <input
+                            disabled = {!props.layer_road_network_show}
+                            type     = "checkbox"
+                            checked  = {props.layer_road_network_ticks_show}
+                            onChange = {event=>props.set_layer_road_network_ticks_show(!props.layer_road_network_ticks_show)}
+                        />
+                        <div>Show SLK Ticks</div>
+                    </label>
                     {
-                        props.layer_wmts_url &&
+                        props.layer_wmts_available &&
                         <label>
-                            <div>Show WMTS Layer</div>
-                            <input 
-                                key="nickmap-controls-wmts-layer"
+                            <input
                                 type="checkbox"
                                 checked={props.layer_wmts_show}
                                 onChange={event=>props.set_layer_wmts_show(!props.layer_wmts_show)}
                             />
+                            <div>Show WMTS Layer</div>
                         </label>
                     }
                     {
-                        props.layer_arcgis_rest_url &&
+                        props.layer_arcgis_rest_available &&
                         <label>
-                            <div>Show ArcGIS Rest Layer</div>
-                            <input 
-                                key="nickmap-controls-arcgis-layer"
+                            <input
                                 type="checkbox"
                                 checked={props.layer_arcgis_rest_show}
                                 onChange={event=>props.set_layer_arcgis_rest_show(!props.layer_arcgis_rest_show)}
                             />
+                            <div>Show ArcGIS Rest Layer</div>
                         </label>
                     }
+                    
                     <label title="Automatically zoom to exent of filtered features when slicers change">
-                        <div>Auto Zoom</div>
-                        <input 
-                            key="nickmap-controls-auto_zoom"
+                        <input
                             type="checkbox"
                             checked={props.auto_zoom}
                             onChange={event=>props.set_auto_zoom(!props.auto_zoom)}
                         />
+                        <div>
+                            Auto Zoom
+                            <button onClick={props.on_zoom_to_extent} title="Zoom to the extent of loaded features" style={{marginLeft:"1em"}}>Reset</button>
+                        </div>
                     </label>
                 </div>
-                <button onClick={props.on_zoom_to_extent} title="Zoom to the extent of loaded features">Reset Zoom</button>
+                
                 <div className="nickmap-controls-zoomto-container">
                     <div className="nickmap-controls-zoomto-inputs">
                         <label htmlFor="nickmap-controls-zoomto-road">
@@ -153,7 +183,6 @@ export function NickMapControls (props:NickMapControlsComponentProps){
                                             <li>May refer to a historic location which no longer exists on current network model</li>
                                             <li>The road number may be invalid</li>
                                         </ul>
-                                        <button>OK</button>
                                     </div>
                                     
                                 }</>

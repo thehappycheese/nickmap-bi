@@ -41,20 +41,23 @@ interface Response_Feature_Type {
 }
 
 
-export async function batch_requests(iter:Iterable<{
-    road_number: string,
-    slk_from: number,
-    slk_to: number,
-    offset?: number,
-    cwy?: string
-}>): Promise<NickmapFeatureCollection_ServerResponse> {
+export async function batch_requests(
+    iter:Iterable<{
+        road_number: string,
+        slk_from: number,
+        slk_to: number,
+        offset?: number,
+        cwy?: string
+    }>,
+    offset_multiplier:number
+): Promise<NickmapFeatureCollection_ServerResponse> {
     
     let request_body_parts: Uint8Array[] = [];
     let request_body_byte_length = 0;
     let request_feature_length = 0;
 
     for(let {road_number: road, slk_from, slk_to, offset=0, cwy="LRS"} of iter){
-        let request_bytes = binary_encode_request(road, slk_from, slk_to, offset, cwy);
+        let request_bytes = binary_encode_request(road, slk_from, slk_to, offset*offset_multiplier, cwy);
         request_body_byte_length+=request_bytes.byteLength;
         request_body_parts.push(request_bytes);
         request_feature_length+=1;

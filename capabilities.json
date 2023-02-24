@@ -6,9 +6,7 @@
             "description":"The road number identifying the state or local government road",
             "kind":"Grouping",
             "preferredTypes":[
-                {
-                    "text":true
-                }
+                {"text":true}
             ]
         },
         {
@@ -17,9 +15,7 @@
             "description":"The linear measurement along the Road at which this row of data starts",
             "kind":"Grouping",
             "requiredTypes":[
-                {
-                    "numeric":true
-                }
+                {"numeric":true}
             ]
         },
         {
@@ -28,9 +24,7 @@
             "description":"The linear measurement along the Road at which this row of data ends",
             "kind":"Grouping",
             "requiredTypes":[
-                {
-                    "numeric":true
-                }
+                {"numeric":true}
             ]
         },
         {
@@ -39,9 +33,7 @@
             "description":"A string value which is some combination of the letters L, R and S identifying the carriageways to visualise this data on.",
             "kind":"Grouping",
             "preferredTypes":[
-                {
-                    "text":true
-                }
+                {"text":true}
             ]
         },
         {
@@ -50,9 +42,7 @@
             "description":"The distance in meters to offset the line segment visual. (Can be negative or positive to indicate offset direction. I think negative will offset to the left.)",
             "kind":"Grouping",
             "preferredTypes":[
-                {
-                    "numeric":true
-                }
+                {"numeric":true}
             ]
         },
         {
@@ -61,9 +51,7 @@
             "description":"The colour to give each line. Must be a valid CSS colour value. Google 'CSS Colour' and you will find nice charts. Support for PowerBI's automated colour systems in the future.",
             "kind":"Grouping",
             "preferredTypes":[
-                {
-                    "text":true
-                }
+                {"text":true}
             ]
         },
         {
@@ -75,28 +63,36 @@
     "objects": {
         "line_format": {
             "properties": {
-                "default_line_colour":{
-                    "type": {"fill": {"solid": {"color":true}}}
-                }
+                "default_line_colour": {"type": {"fill": {"solid": {"color":true}}}},
+                "default_line_width" : {"type": {"numeric": true}},
+                "offset_multiplier"  : {"type": {"numeric": true}}
             }
         },
         "road_network": {
             "properties": {
-                "show":{"type": {"bool": true}},
-                "url":{"type": {"text":true}}
+                "show"             : {"type": {"bool": true}},
+                "show_ticks"       : {"type": {"bool": true}},
+                "state_road_colour": {"type": {"fill": {"solid": {"color":true}}}},
+                "psp_colour"       : {"type": {"fill": {"solid": {"color":true}}}}
             }
         },
         "map_background": {
             "properties": {
-                "url_wmts":{"type": {"text":true}},
-                "url_wmts_show":{"type": {"bool":true}},
-                "url_tile_arcgis":{"type": {"text":true}},
-                "url_tile_arcgis_show":{"type": {"bool":true}}
+                "url_wmts"             : {"type": {"text":true}},
+                "url_wmts_show"        : {"type": {"bool":true}},
+                "url_tile_arcgis"      : {"type": {"text":true}},
+                "url_tile_arcgis_show" : {"type": {"bool":true}}
             }
         },
         "map_behaviour": {
             "properties": {
-                "auto_zoom":{"type": {"bool":true}}
+                "auto_zoom":{"type": {"bool":true}},
+                "controls_size":{"type": {"numeric":true}},
+                "controls_mode":{"type": {"enumeration": [
+                    {"displayName": "Disabled",  "value": "Disabled"},
+                    {"displayName": "Collapsed", "value": "Collapsed"},
+                    {"displayName": "Expanded",  "value": "Expanded"}
+                ]}}
             }
         }
     },

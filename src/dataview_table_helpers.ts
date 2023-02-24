@@ -57,17 +57,19 @@ export type feature_tooltip_items = {
 
 export function transform_data_view(
     data_view_table:powerbi.DataViewTable,
-    host:powerbi.extensibility.visual.IVisualHost
-
+    host:powerbi.extensibility.visual.IVisualHost,
+    default_line_width:number,
+    default_line_color:string,
 ):{
-    road_number:string,
-    slk_from:number,
-    slk_to:number,
-    offset:number,
-    cwy:string,
-    colour:string,
-    selection_id:powerbi.visuals.ISelectionId
-    tooltips:feature_tooltip_items
+    road_number  : string,
+    slk_from     : number,
+    slk_to       : number,
+    offset       : number,
+    cwy          : string,
+    colour       : string,
+    line_width   : number,
+    selection_id : powerbi.visuals.ISelectionId
+    tooltips     : feature_tooltip_items
 }[]{
     let result = [];
     let role_columns = dataview_table_role_column_indices__all(data_view_table);
@@ -79,7 +81,8 @@ export function transform_data_view(
             slk_to       : parseFloat(row[role_columns["slk_to"  ][0]] as any),
             offset       : parseFloat(row[role_columns["offset"  ][0]] as any ?? "0"),
             cwy          : row[role_columns["cwy"][0]] as any ?? "LRS",
-            colour       : row[role_columns["colour"][0]] as any ?? "red",
+            colour       : row[role_columns["colour"][0]] as any ?? default_line_color,
+            line_width   : default_line_width,
             selection_id : host.createSelectionIdBuilder().withTable(data_view_table, row_index).createSelectionId(),
             tooltips     : role_columns["tooltips"  ].map(tooltip_column_index=>({
                 column_name: data_view_table.columns[tooltip_column_index].displayName,

@@ -13,7 +13,7 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 
 
-import { NickMapBIFormattingSettings } from "./settings";
+import { ControlsMode, NickMapBIFormattingSettings } from "./settings";
 
 import {dataview_table_role_column_indices__first, transform_data_view} from './dataview_table_helpers'
 import {batch_requests} from './linref'
@@ -82,8 +82,19 @@ export class Visual implements IVisual {
         let dataview_table = options.dataViews[0].table;
 
         try{
-            let input_properties = [...transform_data_view(dataview_table, this.host)]
-            batch_requests(input_properties.values()).then(
+            let input_properties = [
+                ...transform_data_view(
+                    dataview_table,
+                    this.host,
+                    this.formattingSettings.line_format_settings.default_line_width.value,
+                    this.formattingSettings.line_format_settings.default_line_colour.value.value,
+                )
+            ]
+            batch_requests(
+                input_properties.values(),
+                this.formattingSettings.line_format_settings.offset_multiplier.value
+                
+            ).then(
                 (returned_features)=>{
                     let features_filtered_and_coloured:NickmapFeatureCollection = {
                         type     : "FeatureCollection",
@@ -97,6 +108,7 @@ export class Visual implements IVisual {
                                     id : data_row.selection_id.getKey(),
                                     properties:{
                                         colour       : data_row.colour,
+                                        line_width   : data_row.line_width,
                                         selection_id : data_row.selection_id,
                                         tooltips     : data_row.tooltips,
                                     }
@@ -128,27 +140,29 @@ export class Visual implements IVisual {
                 host={this.host}
                 version_text = "NickMapBI v2023-02-20 - TEST VERSION"
 
-                layer_arcgis_rest_url={this.formattingSettings.map_background_settings.url_tile_arcgis.value}
-                layer_arcgis_rest_show={this.formattingSettings.map_background_settings.url_tile_arcgis_show.value}
-                set_layer_arcgis_rest_show={
-                    (new_value:boolean)=>this.async_setting_change("map_background_settings.url_tile_arcgis_show.value", new_value)
-                }
-                layer_wmts_url={this.formattingSettings.map_background_settings.url_wmts.value}
-                layer_wmts_show={this.formattingSettings.map_background_settings.url_wmts_show.value}
-                set_layer_wmts_show={
-                    (new_value:boolean)=>this.async_setting_change("map_background_settings.url_wmts_show.value", new_value)
-                }
-                feature_collection={this.feature_collection}
-                feature_collection_request_count={this.features_requested_count}
+                layer_arcgis_rest_url                 = {this.formattingSettings.map_background_settings.url_tile_arcgis.value}
+                layer_arcgis_rest_show_initial        = {this.formattingSettings.map_background_settings.url_tile_arcgis_show.value}
+                
+                layer_wmts_url                        = {this.formattingSettings.map_background_settings.url_wmts.value}
+                layer_wmts_show_initial               = {this.formattingSettings.map_background_settings.url_wmts_show.value}
 
-                auto_zoom={this.formattingSettings.map_behaviour_settings.auto_zoom.value}
-                set_auto_zoom={(new_value:boolean)=>this.async_setting_change("map_behaviour_settings.auto_zoom.value", new_value)}
+                layer_road_network_show_initial       = {this.formattingSettings.road_network_settings.show.value}
+                layer_road_network_ticks_show_initial = {this.formattingSettings.road_network_settings.show_ticks.value}
+                layer_road_network_state_colour       = {this.formattingSettings.road_network_settings.state_road_color.value.value}
+                layer_road_network_psp_colour         = {this.formattingSettings.road_network_settings.psp_colour.value.value}
 
-                selection={this.selection_manager.getSelectionIds()}
-                set_selection={new_selection_ids=>this.selection_manager.select(new_selection_ids)}
+                feature_collection                    = {this.feature_collection}
+                feature_collection_request_count      = {this.features_requested_count}
 
-                tooltip_service={this.tooltip_service}
-                tooltip_service_wrapper={this.tooltip_service_wrapper}
+                auto_zoom_initial                     = {this.formattingSettings.map_behaviour_settings.auto_zoom.value}
+                
+                selection_manager                     = {this.selection_manager}
+
+                tooltip_service                       = {this.tooltip_service}
+                tooltip_service_wrapper               = {this.tooltip_service_wrapper}
+
+                controls_size = {this.formattingSettings.map_behaviour_settings.controls_size.value}
+                controls_mode = {(this.formattingSettings.map_behaviour_settings.controls_mode.value as ControlsMode).value}
             >
                 
             </NickMap>,

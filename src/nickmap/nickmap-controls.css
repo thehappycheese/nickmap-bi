@@ -1,126 +1,137 @@
 
+
 .nickmap-controls{
-    position:absolute;
-    width:fit-content;
-    box-sizing: border-box;
-    max-height:calc(100% - 2 * 0.3em);
-    max-width:20em;
-    border-radius: 0.3em;
-    margin: 0.3em;
-    background-color: rgba(0,0,0,0.7);
-    display:grid;
-    grid-template-rows: auto 1fr;
-    color:seashell;
-    overflow: hidden;
-    outline:1px solid #555;
-    z-index: 9999;
+    position                       : absolute;
+    width                          : fit-content;
+    box-sizing                     : border-box;
+    max-height                     : calc(100% - 2 * 0.3em);
+    max-width                      : 20em;
+    border-radius                  : 0.3em;
+    margin                         : 0.3em;
+    background-color               : rgba(0,0,0,0.7);
+    display                        : grid;
+    grid-template-rows             : auto 1fr;
+    color                          : seashell;
+    overflow                       : hidden;
+    outline                        : 1px solid #555;
+    pointer-events:all;
 }
 
 .nickmap-controls-collapsible-body{
-    border-top:1px solid #555;
-    padding:0.3em;
-    overflow-x: hidden;
-    overflow-y: auto;
-    margin-bottom:0.2em;
-    margin-right:0.2em;
+    border-top                     : 1px solid #555;
+    padding                        : 0.3em;
+    overflow-x                     : hidden;
+    overflow-y                     : auto;
+    margin-bottom                  : 0.2em;
+    margin-right                   : 0.2em;
 }
+
 .nickmap-controls-collapsible-body::-webkit-scrollbar {
-    width: 12px;
+    width                          : 12px;
 }
+
 .nickmap-controls-collapsible-body::-webkit-scrollbar-track {
-    border-radius: 8px;
-    background-color: #1f1f1f33;
-    border: 1px solid #5c5c5c33;
-    box-shadow: inset 0 0 6px rgba(65, 65, 65, 0.3);
+    border-radius                  : 8px;
+    background-color               : #1f1f1f33;
+    border                         : 1px solid #5c5c5c33;
+    box-shadow                     : inset 0 0 6px rgba(65, 65, 65, 0.3);
 }
+
 .nickmap-controls-collapsible-body::-webkit-scrollbar-thumb {
-    border-radius: 8px;
-    background-color: #aaaaaa;
+    border-radius                  : 8px;
+    background-color               : #aaaaaa;
 }
 
+.nickmap-controls input, button{
+    font-size: inherit;
+}
 
-
-
+.nickmap-controls input[type="checkbox"]{
+    width:1em;
+    height:1em;
+}
 
 
 .nickmap-controls-input-grid label{
-    display:grid;
-    grid-template-columns: 1fr auto;
-    gap:1em;
-    margin: 0.1em 0;
+    display                        : grid;
+    grid-template-columns          : auto 1fr;
+    gap                            : 1em;
+    margin                         : 0.1em 0;
 }
 
 .nickmap-controls-zoomto-container{
-    display:grid;
-    grid-template-columns: 1fr auto;
-    gap:0.6em;
-    margin:0.6em 0;
+    display                        : grid;
+    grid-template-columns          : 1fr auto;
+    gap                            : 0.6em;
+    margin                         : 0.6em 0;
 }
 .nickmap-controls-zoomto-inputs{
-    display:grid;
-    grid-template-columns: 1fr 5em;
-    gap:0.6em;
+    display                        : grid;
+    grid-template-columns          : 1fr 5em;
+    gap                            : 0.6em;
 }
 .nickmap-controls-zoomto-status{
-    font-size: 80%;
-    grid-column-start: 1;
-    grid-column-end: -1;
+    font-size                      : 80%;
+    grid-column-start              : 1;
+    grid-column-end                : -1;
 }
 .nickmap-controls-zoomto-status.failed{
-    padding:0.3em;
-    background-color:#FBB8;
+    padding                        : 0.3em;
+    background-color               : #FBB8;
 }
 .nickmap-controls-zoomto-status-fail-explanation{
-    background-color: #333;
-    padding:0.3em;
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    margin: auto;
-    overflow-y:scroll;
+    background-color               : #333;
+    padding                        : 0.3em;
+    position                       : absolute;
+    left                           : 0;
+    right                          : 0;
+    top                            : 0;
+    bottom                         : 0;
+    margin                         : auto;
+    overflow-y                     : scroll;
 }
 .nickmap-controls-zoomto-status-fail-explanation li{
-    list-style-type: circle;
+    list-style-type                : circle;
 }
 
 .nickmap-controls-container-title{
-    padding:0.3em;
-    line-height: 1em;
-    background-color: #222;
+    padding                        : 0.3em;
+    line-height                    : 1em;
+    background-color               : #222;
 }
 
 
 .nickmap-controls-other-map-button-container{
-    display:grid;
-    grid-template-columns: auto 1fr 1fr;
-    gap:   0.6em;
-    line-height: 1em;
+    display                        : grid;
+    grid-template-columns          : auto 1fr 1fr;
+    gap                            : 0.6em;
+    line-height                    : 1em;
 }
 
 .nickmap-controls-open-in-google-button{
-    height:100%;
-    background-image: url('../../assets/google_maps.png');
-    background-repeat: no-repeat;
-    background-position-x: center;
-    background-position-y: center;
+    height                         : 100%;
+    background-image               : url('../../assets/google_maps.png');
+    background-repeat              : no-repeat;
+    background-position-x          : center;
+    background-position-y          : center;
+    background-size                : 1em 1em;
 }
 
 .nickmap-controls-pegman{
-    pointer-events:all;
-    background-image: url('../../assets/google_pegman.png');
-    background-repeat: no-repeat;
-    background-position-x: center;
-    background-position-y: center;
-    cursor:grab;
+    pointer-events                 : all;
+    background-image               : url('../../assets/google_pegman.png');
+    background-repeat              : no-repeat;
+    background-position-x          : center;
+    background-position-y          : center;
+    background-size                : 1em 1em;
+    cursor                         : grab;
 }
 
 .nickmap-controls-pegman:hover{
-    background-image: url('../../assets/google_pegman_liftoff.png');
-    background-color:rgba(255,255,255,0.4);
+    background-image               : url('../../assets/google_pegman_liftoff.png');
+    background-color               : rgba(255,255,255,0.4);
 }
 
 .nickmap-controls-pegman:active{
-    cursor: grabbing;
+    cursor                         : grabbing;
 }
