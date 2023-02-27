@@ -31,10 +31,11 @@ import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 
 import * as React from "react";
 import { NickmapFeatureCollection } from '../NickmapFeatures';
-import { zoom_to_road_slk_state_type } from './zoom_to_road_slk_state_type';
+import { Fetch_Data_State } from './Fetch_Data_Sate';
 import { ITooltipServiceWrapper } from 'powerbi-visuals-utils-tooltiputils';
 import { feature_tooltip_items } from '../dataview_table_helpers';
 import { road_network_styles } from './layers/road_network';
+import { active } from 'd3';
 
 type NickMapProps = {
     
@@ -55,8 +56,10 @@ type NickMapProps = {
 
     feature_collection:NickmapFeatureCollection
     feature_collection_request_count:number
+    feature_loading_state:Fetch_Data_State
 
     auto_zoom_initial:boolean
+    allow_drag_box_selection:boolean
 
     // selection:powerbi.extensibility.ISelectionId[],
     // set_selection:(new_value:powerbi.extensibility.ISelectionId[])=>void
@@ -64,7 +67,6 @@ type NickMapProps = {
 
     tooltip_service:powerbi.extensibility.ITooltipService
     tooltip_service_wrapper: ITooltipServiceWrapper
-
     controls_size:number
     controls_mode:"Collapsed"|"Expanded"|"Disabled"
 
@@ -75,19 +77,32 @@ const default_map_view_settings = {
     center: [12900824.756597541, -3758196.7323907884],
 };
 
+const local_platformModifierKeyOnly = platformModifierKeyOnly; // I don't know why this is needed. I think typescript was not compiling properly.
+
 export function NickMap(props:NickMapProps){
-    const [auto_zoom, set_auto_zoom] = useState(props.auto_zoom_initial);
-    const [layer_arcgis_rest_show, set_layer_arcgis_rest_show] = useState(props.layer_arcgis_rest_show_initial);
-    const [layer_wmts_show, set_layer_wmts_show] = useState(props.layer_wmts_show_initial);
-    const [layer_road_network_show, set_layer_road_network_show] = useState(props.layer_road_network_show_initial);
+    const [auto_zoom                    , set_auto_zoom                    ] = useState(props.auto_zoom_initial);
+    const [layer_arcgis_rest_show       , set_layer_arcgis_rest_show       ] = useState(props.layer_arcgis_rest_show_initial);
+    const [layer_wmts_show              , set_layer_wmts_show              ] = useState(props.layer_wmts_show_initial);
+    const [layer_road_network_show      , set_layer_road_network_show      ] = useState(props.layer_road_network_show_initial);
     const [layer_road_network_ticks_show, set_layer_road_network_ticks_show] = useState(props.layer_road_network_ticks_show_initial);
-    const [status_text, set_status_text] = React.useState("");
-    const [zoom_to_road_slk_state, set_zoom_to_road_slk_state] = React.useState<zoom_to_road_slk_state_type>({type:"IDLE"})
-    const vector_source_data_ref = useRef<VectorSource>(new VectorSource({}))
-    const map_root_ref = useRef<HTMLDivElement>();
-     // TODO: avoid any
+    const [zoom_to_road_slk_state       , set_zoom_to_road_slk_state       ] = React.useState<Fetch_Data_State>({type:"IDLE"})
+    const vector_source_data_ref     = useRef<VectorSource>(new VectorSource({}))
+    const map_root_ref               = useRef<HTMLDivElement>();
     const layer_state_road_ticks_ref = useRef<VectorLayer<VectorSource> | null>(null);
-    const select_interaction_ref = useRef<Select>(null)
+
+    const drag_interaction_ref       = useRef<DragBox>((()=>{
+        let result = new DragBox({
+            condition:local_platformModifierKeyOnly,
+        })
+        result.setActive(props.allow_drag_box_selection); // not available as a constructor option
+        return result;
+    })())
+
+    useEffect(()=>{
+        drag_interaction_ref.current.setActive(props.allow_drag_box_selection)
+    },[props.allow_drag_box_selection])
+    
+    const select_interaction_ref     = useRef<Select>(null)
     const map_ref = useRef(new OpenLayersMap({
         controls:[
             new Rotate(),
@@ -135,13 +150,9 @@ export function NickMap(props:NickMapProps){
             ]
         });
         map.addInteraction(select_interaction_ref.current);
-        const drag_interaction = new DragBox({condition:platformModifierKeyOnly})
-        map.addInteraction(drag_interaction);
-        drag_interaction.on('boxstart', function (event) {
-            //select_interaction_ref.current.getFeatures().clear();
-        });
-        drag_interaction.on('boxend', function (event) {
-            const extent = drag_interaction.getGeometry().getExtent();
+        map.addInteraction(drag_interaction_ref.current);
+        drag_interaction_ref.current.on('boxend', (event) => {
+            const extent = drag_interaction_ref.current.getGeometry().getExtent();
             const boxFeatures = vector_source_data_ref.current
                 .getFeaturesInExtent(extent)
                 .filter((feature) => feature.getGeometry().intersectsExtent(extent));
@@ -162,32 +173,33 @@ export function NickMap(props:NickMapProps){
             // extent, the geometries intersect
             if (oblique) {
                 const anchor = [0, 0];
-                const geometry = drag_interaction.getGeometry().clone();
+                const geometry = drag_interaction_ref.current.getGeometry().clone();
                 geometry.rotate(-rotation, anchor);
                 const extent = geometry.getExtent();
+                const selection_list = [];
                 boxFeatures.forEach(function (feature) {
                     const geometry = feature.getGeometry().clone();
                     geometry.rotate(-rotation, anchor);
                     if (geometry.intersectsExtent(extent)) {
                         select_interaction_ref.current.getFeatures().push(feature);
-                        props.selection_manager.select(select_interaction_ref.current.getFeatures().getArray().map(item=>item.get("selection_id")))
+                        selection_list.push(...select_interaction_ref.current.getFeatures().getArray().map(item=>item.get("selection_id")))
                     }
                 });
+                props.selection_manager.select(selection_list)
             } else {
                 select_interaction_ref.current.getFeatures().extend(boxFeatures);
                 props.selection_manager.select(select_interaction_ref.current.getFeatures().getArray().map(item=>item.get("selection_id")))
             }
-        });
+        })
         
         select_interaction_ref.current.on("select", e => {
-            if((e.mapBrowserEvent.originalEvent as MouseEvent).isTrusted) // TODO: is this check needed?
+            //if((e.mapBrowserEvent.originalEvent as MouseEvent).isTrusted) // TODO: is this check needed?
             //console.log("TODO MOUNT - Select Interaction on Select")
             props.selection_manager
                 .clear()
                 .then(
                     ()=>props.selection_manager.select(e.selected.map(item=>item.get("selection_id")))
                 ).then(()=>{
-                    //props.tooltip_service_wrapper.addTooltip()
                     let selected_item_tooltips:feature_tooltip_items[] = e.selected.map(item=>item.get("tooltips"))
                     if(selected_item_tooltips.length===1){
                         props.tooltip_service.show({
@@ -248,9 +260,9 @@ export function NickMap(props:NickMapProps){
                 goto_google_street_view(loc, props.host);
             }
         });
-        set_status_text(build_status_feature_count(props.feature_collection.features.length,props.feature_collection_request_count))
         render_features_helper(vector_source_data_ref.current, props.feature_collection, map_ref.current);
     },[]);
+
 
     // ===============================
     // ROAD NETWORK STYLE & VISIBILITY
@@ -352,7 +364,6 @@ export function NickMap(props:NickMapProps){
             map_ref.current,
             props.auto_zoom_initial
         );
-        set_status_text(build_status_feature_count(props.feature_collection.features.length,props.feature_collection_request_count))
     },[props.feature_collection])
 
 
@@ -437,13 +448,41 @@ export function NickMap(props:NickMapProps){
                 />
             }
             <div className="nickmap-status-version-display">
-                <div className="nickmap-status-text" title={status_text}>{status_text}</div>
+                <div className="nickmap-status-text">{
+                    build_status_display(props)
+                }</div>
                 <div className="nickmap-version-text" title={props.version_text}>{props.version_text}</div>
             </div>
         </div>
         <div ref={map_root_ref} className="nickmap-map-host"></div>
     </div>
 }
+
+
+
+function build_status_display(props:NickMapProps){
+    switch(props.feature_loading_state.type){
+        case "SUCCESS":
+            return <>
+                <>{
+                    props.feature_collection_request_count===30_000 &&
+                    <span className="nickmap-status-text-error">LIMITED TO FIRST 30,000 ROWS! </span>
+                }</>
+                <>{
+                    props.feature_collection_request_count !== props.feature_collection.features.length &&
+                    <span className='nickmap-status-text-warning'>{`NOT SHOWING ${props.feature_collection_request_count-props.feature_collection.features.length} INVALID ROWS. `}</span>
+                }</>
+                <>{`Showing ${props.feature_collection.features.length} feature${props.feature_collection.features.length===1?"":"s"}`}</>
+            </>
+        case "FAILED":
+            return <span className='nickmap-status-text-error'>{`FAILED TO LOAD ${props.feature_collection_request_count} FEATURE${props.feature_collection_request_count===1?"":"S"} (NETWORK ERROR?)`}</span>
+        case "IDLE":
+            return <>Waiting for input</>
+        case "PENDING":
+            return <>{`Loading ${props.feature_collection_request_count} feature${props.feature_collection_request_count===1?"":"s"}`}</>
+    }
+}
+
 
 /**
  * This function is used because `map.getView().setProperties()` does not work as expected
@@ -453,14 +492,6 @@ function set_view_properties(map:OpenLayersMap, zoom:number, center:number[]){
     let view = map.getView();
     view.setZoom(zoom);
     view.setCenter(center);
-}
-
-function build_status_feature_count(features_count, features_requested_count){
-    if(features_count===features_requested_count){
-        return `Showing ${features_count} features`
-    }else{
-        return `Showing ${features_count} of ${features_requested_count} features`
-    }
 }
 
 function render_features_helper(

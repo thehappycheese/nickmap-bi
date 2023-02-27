@@ -76,7 +76,9 @@ export async function batch_requests(
         "https://linref.thehappycheese.com/batch/", 
         {
             method: "POST",
-            body: request_body
+            body: request_body,
+            signal: AbortSignal.timeout(20_000)
+
         });
     if (!response.ok) return {
         type:"FeatureCollection",

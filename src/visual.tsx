@@ -15,10 +15,11 @@ import * as ReactDOM from "react-dom";
 
 import { ControlsMode, NickMapBIFormattingSettings } from "./settings";
 
-import {dataview_table_role_column_indices__first, transform_data_view} from './dataview_table_helpers'
+import {transform_data_view} from './dataview_table_helpers'
 import {batch_requests} from './linref'
 import { zip_arrays} from './util/itertools'
 import { NickmapFeatureCollection } from "./NickmapFeatures";
+import { Fetch_Data_State } from "./nickmap/Fetch_Data_Sate";
 
 export class Visual implements IVisual {
     private react_root: HTMLElement;
@@ -28,6 +29,7 @@ export class Visual implements IVisual {
     private pending_settings_changes:{path:string,new_value:any}[];
     private feature_collection: NickmapFeatureCollection;
     private features_requested_count: number;
+    private feature_loading_state:Fetch_Data_State = {type:"IDLE"};
     private selection_manager: powerbi.extensibility.ISelectionManager;
     // private storage: powerbi.extensibility.ILocalVisualStorageService; // Cant use this without verifying the visual
     
@@ -61,14 +63,6 @@ export class Visual implements IVisual {
         // Extract settings from dataview
         this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(NickMapBIFormattingSettings, options.dataViews);
 
-        // Apply pending settings changes;
-        try{
-            this.apply_async_setting_changes();
-        }catch(e){
-            //TODO Fails quietly?
-        }
-        
-
         // Check dataview is present
         if (options.dataViews.length==0 || !options.dataViews[0].table) {
             // if not, still do render, then exit early
@@ -80,9 +74,10 @@ export class Visual implements IVisual {
         
         // Extract table Data View
         let dataview_table = options.dataViews[0].table;
-
+        this.features_requested_count = dataview_table.rows.length;
+        let input_properties = [];
         try{
-            let input_properties = [
+            input_properties = [
                 ...transform_data_view(
                     dataview_table,
                     this.host,
@@ -90,9 +85,17 @@ export class Visual implements IVisual {
                     this.formattingSettings.line_format_settings.default_line_colour.value.value,
                 )
             ]
+        }catch(e){
+            console.log("Error transforming powerbi data into table")
+            console.log(e)
+            this.feature_loading_state = {type:"FAILED", reason:"Failed to interpret input data"}
+            this.feature_collection = { type: "FeatureCollection", features: [] };
+        }
+        if(input_properties.length > 0){
+            this.feature_loading_state = {type:"PENDING"};
             batch_requests(
                 input_properties.values(),
-                this.formattingSettings.line_format_settings.offset_multiplier.value
+                this.formattingSettings.advanced_settings.offset_multiplier.value
                 
             ).then(
                 (returned_features)=>{
@@ -116,17 +119,16 @@ export class Visual implements IVisual {
                             )
                         }
                     }
-                    this.features_requested_count = returned_features.features.length;
+                    this.feature_loading_state = {type:"SUCCESS"}
                     this.feature_collection = features_filtered_and_coloured;
+                    this.react_render_call()
+                },
+                failure=>{
+                    this.feature_loading_state = {type:"FAILED", reason:"Unable to fetch geometry from server."}
                     this.react_render_call()
                 }
             )
-        }catch(e){
-            // TODO: any error will cause total failure without message to user
-            this.feature_collection = { type: "FeatureCollection", features: [] };
         }
-        
-        
         this.react_render_call()
     }
 
@@ -153,8 +155,11 @@ export class Visual implements IVisual {
 
                 feature_collection                    = {this.feature_collection}
                 feature_collection_request_count      = {this.features_requested_count}
+                feature_loading_state                 = {this.feature_loading_state}
 
                 auto_zoom_initial                     = {this.formattingSettings.map_behaviour_settings.auto_zoom.value}
+
+                allow_drag_box_selection              = {this.formattingSettings.advanced_settings.allow_drag_box_selection.value}
                 
                 selection_manager                     = {this.selection_manager}
 

@@ -22,28 +22,41 @@
 
 
 .nickmap-status-version-display{
+    font-size: 12px;
     position:absolute;
     pointer-events: none;
-    bottom:0;
-    right:0;
-    left:10em;
+    bottom:2px;
+    right:2px;
+    left:160px;
     z-index: 9999;
     display:grid;
     grid-template-columns: 2fr 1fr;
-    color: #000B;
+    
 }
 
 .nickmap-status-text{
-    font-size:90%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: #000;
+    text-shadow:
+    -1px -1px 1px white,
+    1px -1px 1px white,
+    -1px 1px 1px white,
+    1px 1px 1px white; 
 }
 .nickmap-version-text{
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 80%;
     white-space: nowrap;
     text-align: right;
+    color: #000B;
 }
 
+.nickmap-status-text-warning{
+    color: orangered;
+}
+
+.nickmap-status-text-error{
+    color: red;
+}

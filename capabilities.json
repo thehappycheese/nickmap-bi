@@ -30,7 +30,7 @@
         {
             "displayName":"Carriageway (L|R|S|LS|RS|LRS)",
             "name":"cwy",
-            "description":"A string value which is some combination of the letters L, R and S identifying the carriageways to visualise this data on.",
+            "description":"A text value consisting of any combination of the letters `L`, `R` and `S` identifying the Left, Right or Single carriageway. If left blank will default to `LRS`",
             "kind":"Grouping",
             "preferredTypes":[
                 {"text":true}
@@ -39,7 +39,7 @@
         {
             "displayName":"Offset Metres (+ or -)",
             "name":"offset",
-            "description":"The distance in meters to offset the line segment visual. (Can be negative or positive to indicate offset direction. I think negative will offset to the left.)",
+            "description":"The distance in meters to offset the line segment. Values can be negative or positive: Positive will offset to the right hand side from the perspective of a vehicle travelling in the direction of increasing slk. Keep as small as possible to avoid distortion and invisible features.",
             "kind":"Grouping",
             "preferredTypes":[
                 {"numeric":true}
@@ -64,8 +64,7 @@
         "line_format": {
             "properties": {
                 "default_line_colour": {"type": {"fill": {"solid": {"color":true}}}},
-                "default_line_width" : {"type": {"numeric": true}},
-                "offset_multiplier"  : {"type": {"numeric": true}}
+                "default_line_width" : {"type": {"numeric": true}}
             }
         },
         "road_network": {
@@ -93,6 +92,12 @@
                     {"displayName": "Collapsed", "value": "Collapsed"},
                     {"displayName": "Expanded",  "value": "Expanded"}
                 ]}}
+            }
+        },
+        "advanced_settings":{
+            "properties":{
+                "offset_multiplier"  : {"type": {"numeric": true}},
+                "allow_drag_box_selection": {"type":{"bool": true}}
             }
         }
     },
