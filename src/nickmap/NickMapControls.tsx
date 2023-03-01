@@ -174,15 +174,18 @@ export function NickMapControls (props:NickMapControlsComponentProps){
                                 <>{
                                     show_zoomto_fail_explanation &&
                                     <div className="nickmap-controls-zoomto-status-fail-explanation" onClick={event=>set_show_zoomto_fail_explanation(false)}>
-                                        <p>The specified road/slk combination was not found by the server. This can happen for many reasons:</p>
-                                        <ul>
-                                            <li>There may be an SLK 'Gap' or 'Point of Equation' at this location.</li>
-                                            <li>The SLK of this road may not begin at zero</li>
-                                            <li>the SLK chosen may be after the end of this road's length</li>
-                                            <li>The server may be using out-of-date network model</li>
-                                            <li>May refer to a historic location which no longer exists on current network model</li>
-                                            <li>The road number may be invalid</li>
-                                        </ul>
+                                        <div className="nickmap-controls-zoomto-status-fail-explanation-scroll-area">
+                                            <p>The specified road/slk combination was not found by the server. This can happen for many reasons:</p>
+                                            <ul>
+                                                <li>There may be an SLK 'Gap' or 'Point of Equation' at this location.</li>
+                                                <li>The SLK of this road may not begin at zero</li>
+                                                <li>the SLK chosen may be after the end of this road's length</li>
+                                                <li>The server may be using out-of-date network model</li>
+                                                <li>May refer to a historic location which no longer exists on current network model</li>
+                                                <li>The road number may be invalid</li>
+                                            </ul>
+                                        </div>
+                                        <button>OK</button>
                                     </div>
                                     
                                 }</>

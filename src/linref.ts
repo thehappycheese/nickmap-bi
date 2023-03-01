@@ -40,6 +40,11 @@ interface Response_Feature_Type {
     }
 }
 
+export class BatchRequestBinaryEncodingError extends Error{}
+export class BatchRequestFetchError extends Error{}
+export class BatchRequestResponseError extends Error{}
+export class BatchRequestJSONDeserializeError extends Error{}
+
 
 export async function batch_requests(
     iter:Iterable<{
@@ -55,12 +60,15 @@ export async function batch_requests(
     let request_body_parts: Uint8Array[] = [];
     let request_body_byte_length = 0;
     let request_feature_length = 0;
-
-    for(let {road_number: road, slk_from, slk_to, offset=0, cwy="LRS"} of iter){
-        let request_bytes = binary_encode_request(road, slk_from, slk_to, offset*offset_multiplier, cwy);
-        request_body_byte_length+=request_bytes.byteLength;
-        request_body_parts.push(request_bytes);
-        request_feature_length+=1;
+    try{
+        for(let {road_number: road, slk_from, slk_to, offset=0, cwy="LRS"} of iter){
+            let request_bytes = binary_encode_request(road, slk_from, slk_to, offset*offset_multiplier, cwy);
+            request_body_byte_length+=request_bytes.byteLength;
+            request_body_parts.push(request_bytes);
+            request_feature_length+=1;
+        }
+    }catch(e){
+        throw new BatchRequestBinaryEncodingError()
     }
     // Pack all queries into a single byte array:
     let request_body = new Uint8Array(request_body_byte_length);
@@ -72,28 +80,39 @@ export async function batch_requests(
     )
 
     // Send the request to the server
-    let response = await fetch(
-        "https://linref.thehappycheese.com/batch/", 
-        {
-            method: "POST",
-            body: request_body,
-            signal: AbortSignal.timeout(20_000)
+    let response:Response;
+    try{
+        response = await fetch(
+            "https://linref.thehappycheese.com/batch/", 
+            {
+                method: "POST",
+                body: request_body,
+                signal: AbortSignal.timeout(20_000)
 
-        });
-    if (!response.ok) return {
-        type:"FeatureCollection",
-        features:new Array(request_feature_length).fill(null)
-    };
+            }
+        );
+    }catch(e){
+        throw new BatchRequestFetchError(`BatchRequestFetchError(${e.message.slice(0,20)})`,{cause:e})
+    }
+    if (!response.ok) {
+        throw new BatchRequestResponseError(`BatchRequestResponseError(${response.status.toString()},${response.statusText})`,{cause:response})
+        // return {
+        //     type:"FeatureCollection",
+        //     features:new Array(request_feature_length).fill(null)
+        // }
+    }
     let response_json:any;
     try{
         response_json = await response.json();
     }catch(e){
-        return {
-            type:"FeatureCollection",
-            features:new Array(request_feature_length).fill(null)
-        };
+        throw new BatchRequestJSONDeserializeError(`BatchRequestJSONDeserializeError(${e.message.slice(0,20)})`,{cause:e})
+        // return {
+        //     type:"FeatureCollection",
+        //     features:new Array(request_feature_length).fill(null)
+        // };
     }
     
+    // TODO: lift the next step so we can combine it with the tep where we append the feature properties?
     let features:Response_Feature_Type[] = [];
     for (let multi_line_string_coordinates of response_json) {
         

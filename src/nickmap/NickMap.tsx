@@ -475,7 +475,11 @@ function build_status_display(props:NickMapProps){
                 <>{`Showing ${props.feature_collection.features.length} feature${props.feature_collection.features.length===1?"":"s"}`}</>
             </>
         case "FAILED":
-            return <span className='nickmap-status-text-error'>{`FAILED TO LOAD ${props.feature_collection_request_count} FEATURE${props.feature_collection_request_count===1?"":"S"} (NETWORK ERROR?)`}</span>
+            return <span className='nickmap-status-text-error'>
+                <>{`FAILED TO LOAD ${props.feature_collection_request_count} FEATURE${props.feature_collection_request_count===1?"":"S"}`}</>
+                <br/>
+                <>{`(${props.feature_loading_state.reason})`}</>
+            </span>
         case "IDLE":
             return <>Waiting for input</>
         case "PENDING":

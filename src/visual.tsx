@@ -70,11 +70,14 @@ export class Visual implements IVisual {
             return;
         }
 
-        
+
         
         // Extract table Data View
         let dataview_table = options.dataViews[0].table;
         this.features_requested_count = dataview_table.rows.length;
+        // TODO: allow transform_data_view to return array
+        // TODO: allow transform_data_view to filter
+        // TODO: also record the number of rows in the input dataframe to count transform failures
         let input_properties = [];
         try{
             input_properties = [
@@ -99,6 +102,8 @@ export class Visual implements IVisual {
                 
             ).then(
                 (returned_features)=>{
+                    // TODO: In same cases the server will return geometries with zero coordinates.
+                    //       These need to be counted as invalid. Currently the visual includes them in the "showing" count
                     let features_filtered_and_coloured:NickmapFeatureCollection = {
                         type     : "FeatureCollection",
                         features : []
@@ -124,7 +129,8 @@ export class Visual implements IVisual {
                     this.react_render_call()
                 },
                 failure=>{
-                    this.feature_loading_state = {type:"FAILED", reason:"Unable to fetch geometry from server."}
+                    console.log(failure)
+                    this.feature_loading_state = {type:"FAILED", reason:failure.message}
                     this.react_render_call()
                 }
             )
@@ -140,7 +146,7 @@ export class Visual implements IVisual {
         ReactDOM.render(
             <NickMap
                 host={this.host}
-                version_text = "NickMapBI v2023-02-20 - TEST VERSION"
+                version_text = "NickMapBI 2023-02-28-4.1.1 TEST VERSION"
 
                 layer_arcgis_rest_url                 = {this.formattingSettings.map_background_settings.url_tile_arcgis.value}
                 layer_arcgis_rest_show_initial        = {this.formattingSettings.map_background_settings.url_tile_arcgis_show.value}
