@@ -24,8 +24,8 @@ function binary_encode_request(road: string, slk_from: number, slk_to: number, o
     road_name_chunk.set(road_bytes, 1);
 
     let data_view = new DataView(buffer, 1 + road_bytes.length);
-    data_view.setFloat32(0, slk_from, true) // LITTLE ENDIAN
-    data_view.setFloat32(4, slk_to, true) // LITTLE ENDIAN
+    data_view.setFloat32(0, Math.min(slk_from, slk_to), true) // LITTLE ENDIAN
+    data_view.setFloat32(4, Math.max(slk_from, slk_to), true) // LITTLE ENDIAN
     data_view.setFloat32(8, offset, true) // LITTLE ENDIAN
     data_view.setUint8(12, cwy_encoded);
 
