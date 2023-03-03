@@ -47,22 +47,22 @@ class RoadNetworkSettings extends formattingSettings.Card {
         description : "Controls the default visibility of this layer when the report is opened.",
         value       : true
     });
-    state_road_color = new formattingSettings.ColorPicker({
-        name        : "State Road Colour",
+    state_road_colour = new formattingSettings.ColorPicker({
+        name        : "state_road_colour",
         displayName : "State Road Colour",
         description : "The colour to use for lines representing a State Owned Road",
         value       : { value: "rgb(50, 100, 100)" },
     });
     psp_colour = new formattingSettings.ColorPicker({
-        name        : "Principal Shared Path Colour",
+        name        : "psp_colour",
         displayName : "Principal Shared Path Colour",
         description : "The colour to use for lines representing a State Owned Shared Path",
-        value       : { value: "rgb(50, 100, 100)" },
+        value       : { value: "rgb(128, 0, 128)", },
     });
     slices = [
         this.show,
         this.show_ticks,
-        this.state_road_color,
+        this.state_road_colour,
         this.psp_colour
     ]
 }

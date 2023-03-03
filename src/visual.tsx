@@ -58,7 +58,7 @@ export class Visual implements IVisual {
     public update(options: VisualUpdateOptions) {
         console.log('Visual update', options);
         
-        
+
 
         // Extract settings from dataview
         this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(NickMapBIFormattingSettings, options.dataViews);
@@ -140,43 +140,46 @@ export class Visual implements IVisual {
 
     
     public react_render_call(){
-        // console.log(`RENDERED VALUE: map_background_settings.url_wmts_show.value: ${this.formattingSettings.map_background_settings.url_wmts_show.value}`)
-        // console.log(`RENDERED VALUE: map_background_settings.url_tile_arcgis_show.value: ${this.formattingSettings.map_background_settings.url_tile_arcgis_show.value}`)
-        // console.log(`RENDERED VALUE: map_behaviour_settings.auto_zoom.value: ${this.formattingSettings.map_behaviour_settings.auto_zoom.value}`)
+        
+        let map_background_settings = this.formattingSettings.map_background_settings
+        let road_network_settings   = this.formattingSettings.road_network_settings
+
+        let map_behaviour_settings = this.formattingSettings.map_behaviour_settings
+        let advanced_settings      = this.formattingSettings.advanced_settings
+        
         ReactDOM.render(
             <NickMap
                 host={this.host}
                 version_text = "NickMapBI 2023-02-28-4.1.1 TEST VERSION"
 
-                layer_arcgis_rest_url                 = {this.formattingSettings.map_background_settings.url_tile_arcgis.value}
-                layer_arcgis_rest_show_initial        = {this.formattingSettings.map_background_settings.url_tile_arcgis_show.value}
+                layer_arcgis_rest_url                 = {map_background_settings.url_tile_arcgis.value}
+                layer_arcgis_rest_show_initial        = {map_background_settings.url_tile_arcgis_show.value}
                 
-                layer_wmts_url                        = {this.formattingSettings.map_background_settings.url_wmts.value}
-                layer_wmts_show_initial               = {this.formattingSettings.map_background_settings.url_wmts_show.value}
+                layer_wmts_url                        = {map_background_settings.url_wmts.value}
+                layer_wmts_show_initial               = {map_background_settings.url_wmts_show.value}
 
-                layer_road_network_show_initial       = {this.formattingSettings.road_network_settings.show.value}
-                layer_road_network_ticks_show_initial = {this.formattingSettings.road_network_settings.show_ticks.value}
-                layer_road_network_state_colour       = {this.formattingSettings.road_network_settings.state_road_color.value.value}
-                layer_road_network_psp_colour         = {this.formattingSettings.road_network_settings.psp_colour.value.value}
+                layer_road_network_show_initial       = {road_network_settings.show.value}
+                layer_road_network_ticks_show_initial = {road_network_settings.show_ticks.value}
+                layer_road_network_state_colour       = {road_network_settings.state_road_colour.value.value}
+                layer_road_network_psp_colour         = {road_network_settings.psp_colour.value.value}
+
+                auto_zoom_initial                     = {map_behaviour_settings.auto_zoom.value}
+                controls_size                         = {map_behaviour_settings.controls_size.value}
+                controls_mode                         = {(map_behaviour_settings.controls_mode.value as ControlsMode).value}
+
+                allow_drag_box_selection              = {advanced_settings.allow_drag_box_selection.value}
 
                 feature_collection                    = {this.feature_collection}
                 feature_collection_request_count      = {this.features_requested_count}
                 feature_loading_state                 = {this.feature_loading_state}
 
-                auto_zoom_initial                     = {this.formattingSettings.map_behaviour_settings.auto_zoom.value}
-
-                allow_drag_box_selection              = {this.formattingSettings.advanced_settings.allow_drag_box_selection.value}
                 
                 selection_manager                     = {this.selection_manager}
 
                 tooltip_service                       = {this.tooltip_service}
                 tooltip_service_wrapper               = {this.tooltip_service_wrapper}
 
-                controls_size = {this.formattingSettings.map_behaviour_settings.controls_size.value}
-                controls_mode = {(this.formattingSettings.map_behaviour_settings.controls_mode.value as ControlsMode).value}
-            >
-                
-            </NickMap>,
+            />,
             this.react_root
         )
     }
