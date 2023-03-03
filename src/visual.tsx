@@ -94,22 +94,28 @@ export class Visual implements IVisual {
             this.feature_loading_state = {type:"FAILED", reason:"Failed to interpret input data"}
             this.feature_collection = { type: "FeatureCollection", features: [] };
         }
-        if(input_properties.length > 0){
+        if(input_properties.length==0){
+            // All features may have been removed
+            this.feature_loading_state = {type:"SUCCESS"};
+            this.feature_collection = {
+                type     : "FeatureCollection",
+                features : []
+            }
+            this.react_render_call()
+        }else if(input_properties.length > 0){
             this.feature_loading_state = {type:"PENDING"};
             batch_requests(
                 input_properties.values(),
                 this.formattingSettings.advanced_settings.offset_multiplier.value
-                
             ).then(
                 (returned_features)=>{
-                    // TODO: In same cases the server will return geometries with zero coordinates.
-                    //       These need to be counted as invalid. Currently the visual includes them in the "showing" count
                     let features_filtered_and_coloured:NickmapFeatureCollection = {
                         type     : "FeatureCollection",
                         features : []
                     }
                     for(let [data_row, feature] of zip_arrays(input_properties, returned_features.features)){
-                        if (feature){
+                        // feature may be null or have zero-sized coordinates array:
+                        if (feature && feature?.geometry?.coordinates){
                             features_filtered_and_coloured.features.push(
                                 {
                                     ...feature,
