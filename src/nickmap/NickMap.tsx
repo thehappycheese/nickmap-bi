@@ -39,36 +39,35 @@ import { active } from 'd3';
 
 type NickMapProps = {
     
-    children:any[]
-    version_text:string
     host:IVisualHost // good change to try context provider
+    version_text:string
+
+    layer_arcgis_rest_url:string
+    layer_arcgis_rest_show_initial:boolean
+    
+    layer_wmts_url:string
+    layer_wmts_show_initial:boolean
 
     layer_road_network_show_initial:boolean
     layer_road_network_ticks_show_initial:boolean
     layer_road_network_state_colour:string
     layer_road_network_psp_colour:string
 
-    layer_wmts_url:string
-    layer_wmts_show_initial:boolean
+    auto_zoom_initial:boolean
+    controls_size:number
+    controls_mode:"Collapsed"|"Expanded"|"Disabled"
 
-    layer_arcgis_rest_url:string
-    layer_arcgis_rest_show_initial:boolean
+    allow_drag_box_selection:boolean
 
     feature_collection:NickmapFeatureCollection
     feature_collection_request_count:number
     feature_loading_state:Fetch_Data_State
 
-    auto_zoom_initial:boolean
-    allow_drag_box_selection:boolean
 
-    // selection:powerbi.extensibility.ISelectionId[],
-    // set_selection:(new_value:powerbi.extensibility.ISelectionId[])=>void
     selection_manager:powerbi.extensibility.ISelectionManager
-
+    
     tooltip_service:powerbi.extensibility.ITooltipService
     tooltip_service_wrapper: ITooltipServiceWrapper
-    controls_size:number
-    controls_mode:"Collapsed"|"Expanded"|"Disabled"
 
 }
 
@@ -77,7 +76,8 @@ const default_map_view_settings = {
     center: [12900824.756597541, -3758196.7323907884],
 };
 
-const local_platformModifierKeyOnly = platformModifierKeyOnly; // I don't know why this is needed. I think typescript was not compiling properly.
+// I don't know why this is needed. I think typescript was not compiling properly. It was telling me it was undefined.
+const local_platformModifierKeyOnly = platformModifierKeyOnly; 
 
 export function NickMap(props:NickMapProps){
     const [auto_zoom                    , set_auto_zoom                    ] = useState(props.auto_zoom_initial);
@@ -269,10 +269,12 @@ export function NickMap(props:NickMapProps){
     // ===============================
     useEffect(()=>{
         road_network_styles["State Road"].getStroke().setColor(props.layer_road_network_state_colour)
+        layer_state_road.changed()
     },[props.layer_road_network_state_colour])
 
     useEffect(()=>{
         road_network_styles["Main Roads Controlled Path"].getStroke().setColor(props.layer_road_network_psp_colour)
+        layer_state_road.changed()
     },[props.layer_road_network_psp_colour])
 
     useEffect(()=>{
