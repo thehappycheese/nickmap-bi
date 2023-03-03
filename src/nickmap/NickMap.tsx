@@ -36,6 +36,8 @@ import { ITooltipServiceWrapper } from 'powerbi-visuals-utils-tooltiputils';
 import { feature_tooltip_items } from '../dataview_table_helpers';
 import { road_network_styles } from './layers/road_network';
 import { active } from 'd3';
+import { Extent } from 'ol/extent';
+import { Coordinate } from 'ol/coordinate';
 
 type NickMapProps = {
     
@@ -71,10 +73,11 @@ type NickMapProps = {
 
 }
 
-const default_map_view_settings = {
-    zoom: 8,
-    center: [12900824.756597541, -3758196.7323907884],
-};
+const western_australia_centroid:Coordinate = fromLonLat([122.18175, -25.46653])
+const western_australia_extent:Extent = [
+    ...fromLonLat([112.921125, -35.191995]),
+    ...fromLonLat([129.001928,-13.68869])
+]
 
 // I don't know why this is needed. I think typescript was not compiling properly. It was telling me it was undefined.
 const local_platformModifierKeyOnly = platformModifierKeyOnly; 
@@ -108,8 +111,11 @@ export function NickMap(props:NickMapProps){
             new Rotate(),
             new ScaleLine()
         ],
-        view:new View(default_map_view_settings)
-    }))
+        view:new View({
+            zoom:5,
+            center:western_australia_centroid
+        })
+    }));
 
     // ===============================
     // CLEAR SELECTION ON EVERY UPDATE
@@ -260,7 +266,11 @@ export function NickMap(props:NickMapProps){
                 goto_google_street_view(loc, props.host);
             }
         });
-        render_features_helper(vector_source_data_ref.current, props.feature_collection, map_ref.current);
+        render_features_helper(
+            vector_source_data_ref.current,
+            props.feature_collection,
+            map_ref.current
+        );
     },[]);
 
 
@@ -364,7 +374,7 @@ export function NickMap(props:NickMapProps){
             vector_source_data_ref.current,
             props.feature_collection,
             map_ref.current,
-            props.auto_zoom_initial
+            auto_zoom
         );
     },[props.feature_collection])
 
@@ -373,15 +383,7 @@ export function NickMap(props:NickMapProps){
     // ZOOM TO EXTENT
     // ==============
     const zoom_to_extent = React.useCallback(()=>{
-        if(vector_source_data_ref.current.getFeatures().length===0){
-            set_view_properties(
-                map_ref.current,
-                default_map_view_settings.zoom,
-                default_map_view_settings.center
-            )
-        }else{
-            map_ref.current.getView().fit(vector_source_data_ref.current.getExtent())
-        }
+        do_auto_zoom(map_ref.current, vector_source_data_ref.current)
     },[map_ref.current, vector_source_data_ref.current])
 
     // ==================
@@ -435,8 +437,8 @@ export function NickMap(props:NickMapProps){
                     set_layer_arcgis_rest_show  = {set_layer_arcgis_rest_show}
 
 
-                    layer_road_network_show     = {layer_road_network_show}
-                    set_layer_road_network_show = {set_layer_road_network_show}
+                    layer_road_network_show           = {layer_road_network_show}
+                    set_layer_road_network_show       = {set_layer_road_network_show}
                     layer_road_network_ticks_show     = {layer_road_network_ticks_show}
                     set_layer_road_network_ticks_show = {set_layer_road_network_ticks_show}
                     
@@ -446,7 +448,7 @@ export function NickMap(props:NickMapProps){
                     auto_zoom                   = {auto_zoom}
                     set_auto_zoom               = {set_auto_zoom}
 
-                    hidden_initial            = {props.controls_mode === 'Collapsed'}
+                    hidden_initial              = {props.controls_mode === 'Collapsed'}
                 />
             }
             <div className="nickmap-status-version-display">
@@ -489,7 +491,6 @@ function build_status_display(props:NickMapProps){
     }
 }
 
-
 /**
  * This function is used because `map.getView().setProperties()` does not work as expected
  * it is pretty annoying
@@ -498,6 +499,15 @@ function set_view_properties(map:OpenLayersMap, zoom:number, center:number[]){
     let view = map.getView();
     view.setZoom(zoom);
     view.setCenter(center);
+}
+
+
+function do_auto_zoom(map:OpenLayersMap,vector_source:VectorSource){
+    if (vector_source.isEmpty()){
+        map.getView().fit(western_australia_extent);
+    }else{
+        map.getView().fit(vector_source.getExtent());
+    }
 }
 
 function render_features_helper(
@@ -514,7 +524,7 @@ function render_features_helper(
         })
         vector_source_data.addFeatures(features)
         if(zoom_to_extent){
-            map.getView().fit(vector_source_data.getExtent())
+            do_auto_zoom(map, vector_source_data);
         }
     }
 }
