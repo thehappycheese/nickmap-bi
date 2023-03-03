@@ -159,8 +159,9 @@ export function NickMapControls (props:NickMapControlsComponentProps){
                             props.on_zoom_to_road_slk(zoom_to_road_input_ref.current.value, zoom_to_slk)
                             zoom_to_road_input_ref.current.reportValidity()
                         }}
+                        title="Zoom the map to the selected Road / SLK"
                     >
-                        Pan To
+                        Go
                     </button>
                     {
                         props.zoom_to_road_slk_state.type==="FAILED" &&
