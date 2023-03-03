@@ -119,8 +119,8 @@ class MapBehaviourSettings extends formattingSettings.Card {
     auto_zoom = new formattingSettings.ToggleSwitch({
         name        : "auto_zoom",
         displayName : "Auto Zoom (startup)",
-        description :"Controls the default behaviour when the report is first opened; Auto zoom to the extent of loaded features when slicers change.",
-        value       : false,
+        description : "Controls the default behaviour when the report is first opened; Auto zoom to the extent of loaded features when slicers change.",
+        value       : true,
     })
 
     controls_mode = new formattingSettings.ItemDropdown({
