@@ -91,7 +91,7 @@ class MapBackgroundSettings extends formattingSettings.Card {
     })
     url_tile_arcgis_show = new formattingSettings.ToggleSwitch({
         name        : "url_tile_arcgis_show",
-        displayName : "Show Tile ArcGIS",
+        displayName : "Show Tile ArcGIS (startup)",
         value       : true,
     })
 
@@ -101,20 +101,31 @@ class MapBackgroundSettings extends formattingSettings.Card {
         description : "Controls the brightness of the background layers",
         options     :{
             minValue:{type:powerbi.visuals.ValidatorType.Min, value:0},
-            maxValue:{type:powerbi.visuals.ValidatorType.Max, value:100},
+            maxValue:{type:powerbi.visuals.ValidatorType.Max, value:200},
         },
-        value: 50
+        value: 100
     });
 
-    osm_greyscale = new formattingSettings.Slider({
-        name        : "osm_greyscale",
-        displayName : "Greyscale",
+    osm_contrast = new formattingSettings.Slider({
+        name        : "osm_contrast",
+        displayName : "Contrast",
+        description : "Controls the contrast of the background layers",
+        options     :{
+            minValue:{type:powerbi.visuals.ValidatorType.Min, value:0},
+            maxValue:{type:powerbi.visuals.ValidatorType.Max, value:200},
+        },
+        value: 100
+    });
+
+    osm_saturation = new formattingSettings.Slider({
+        name        : "osm_saturation",
+        displayName : "Saturation",
         description : "Controls the saturation of the background layers.",
         options     :{
             minValue:{type:powerbi.visuals.ValidatorType.Min, value:0},
-            maxValue:{type:powerbi.visuals.ValidatorType.Max, value:100},
+            maxValue:{type:powerbi.visuals.ValidatorType.Max, value:200},
         },
-        value: 0
+        value: 50
     });
 
     slices = [
@@ -123,7 +134,8 @@ class MapBackgroundSettings extends formattingSettings.Card {
         this.url_tile_arcgis,
         this.url_tile_arcgis_show,
         this.osm_brightness,
-        this.osm_greyscale,
+        this.osm_contrast,
+        this.osm_saturation,
     ]
 }
 

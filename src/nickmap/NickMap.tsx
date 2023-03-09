@@ -56,8 +56,9 @@ type NickMapProps = {
     layer_road_network_state_colour:string
     layer_road_network_psp_colour:string
 
-    layer_osm_brightness:number;
-    layer_osm_greyscale:number;
+    layer_raster_brightness:number;
+    layer_raster_contrast:number;
+    layer_raster_saturation:number;
 
     auto_zoom_initial:boolean
     controls_size:number
@@ -300,13 +301,12 @@ export function NickMap(props:NickMapProps){
     // OPEN STREET MAP LAYER EFFECTS
     // =============================
     useEffect(()=>{
-        layer_open_street_map.__GREYSCALE  = props.layer_osm_greyscale;
-        layer_open_street_map.__BRIGHTNESS = props.layer_osm_brightness;
-        layer_wmts           .__GREYSCALE  = props.layer_osm_greyscale;
-        layer_wmts           .__BRIGHTNESS = props.layer_osm_brightness;
-        layer_arcgis_rest    .__GREYSCALE  = props.layer_osm_greyscale;
-        layer_arcgis_rest    .__BRIGHTNESS = props.layer_osm_brightness;
-    },[props.layer_osm_greyscale, props.layer_osm_brightness])
+        for (const layer of [layer_open_street_map, layer_wmts, layer_arcgis_rest]){
+            layer.__BRIGHTNESS = props.layer_raster_brightness;
+            layer.__CONTRAST   = props.layer_raster_contrast;
+            layer.__SATURATION  = props.layer_raster_saturation;
+        };
+    },[props.layer_raster_saturation, props.layer_raster_brightness, props.layer_raster_contrast])
     
 
     // ===============================

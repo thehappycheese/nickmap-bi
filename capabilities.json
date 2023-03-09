@@ -83,7 +83,8 @@
                 "url_tile_arcgis_show" : {"type": {"bool":true}},
 
                 "osm_brightness"       :{"type": {"numeric":true}},
-                "osm_greyscale"        :{"type": {"numeric":true}}
+                "osm_contrast"         :{"type": {"numeric":true}},
+                "osm_saturation"       :{"type": {"numeric":true}}
             }
         },
         "map_behaviour": {
