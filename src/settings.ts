@@ -94,11 +94,36 @@ class MapBackgroundSettings extends formattingSettings.Card {
         displayName : "Show Tile ArcGIS",
         value       : true,
     })
+
+    osm_brightness = new formattingSettings.Slider({
+        name        : "osm_brightness",
+        displayName : "Brightness",
+        description : "Controls the brightness of the background layers",
+        options     :{
+            minValue:{type:powerbi.visuals.ValidatorType.Min, value:0},
+            maxValue:{type:powerbi.visuals.ValidatorType.Max, value:100},
+        },
+        value: 50
+    });
+
+    osm_greyscale = new formattingSettings.Slider({
+        name        : "osm_greyscale",
+        displayName : "Greyscale",
+        description : "Controls the saturation of the background layers.",
+        options     :{
+            minValue:{type:powerbi.visuals.ValidatorType.Min, value:0},
+            maxValue:{type:powerbi.visuals.ValidatorType.Max, value:100},
+        },
+        value: 0
+    });
+
     slices = [
         this.url_wmts,
         this.url_wmts_show,
         this.url_tile_arcgis,
-        this.url_tile_arcgis_show
+        this.url_tile_arcgis_show,
+        this.osm_brightness,
+        this.osm_greyscale,
     ]
 }
 

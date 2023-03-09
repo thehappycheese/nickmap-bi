@@ -3,7 +3,7 @@ import Collection from 'ol/Collection';
 import { Rotate, ScaleLine } from 'ol/control';
 import { platformModifierKeyOnly } from 'ol/events/condition';
 import GeoJSON from 'ol/format/GeoJSON';
-import { DragBox, Select } from 'ol/interaction';
+import { DragBox, Select, defaults as default_interactions} from 'ol/interaction';
 import { Group as LayerGroup } from 'ol/layer';
 import { Vector as VectorLayer} from 'ol/layer';
 import { clearUserProjection, fromLonLat } from 'ol/proj';
@@ -15,6 +15,7 @@ import View from 'ol/View';
 import powerbi from "powerbi-visuals-api";
 
 import { useEffect, useRef, useState } from 'react';
+import {useRefFactory} from './hooks/useRefFactory'
 
 import {
     get_layer_state_road_ticks,
@@ -55,6 +56,9 @@ type NickMapProps = {
     layer_road_network_state_colour:string
     layer_road_network_psp_colour:string
 
+    layer_osm_brightness:number;
+    layer_osm_greyscale:number;
+
     auto_zoom_initial:boolean
     controls_size:number
     controls_mode:"Collapsed"|"Expanded"|"Disabled"
@@ -89,92 +93,44 @@ export function NickMap(props:NickMapProps){
     const [layer_road_network_show      , set_layer_road_network_show      ] = useState(props.layer_road_network_show_initial);
     const [layer_road_network_ticks_show, set_layer_road_network_ticks_show] = useState(props.layer_road_network_ticks_show_initial);
     const [zoom_to_road_slk_state       , set_zoom_to_road_slk_state       ] = useState<Fetch_Data_State>({type:"IDLE"});
-    
+   
     const select_status_display_ref  = useRef<HTMLDivElement | null>(null)
-    const vector_source_data_ref     = useRef<VectorSource>(new VectorSource({}))
     const map_root_ref               = useRef<HTMLDivElement>();
-    const layer_state_road_ticks_ref = useRef<VectorLayer<VectorSource> | null>(null);
+    
+    
+    
+    // =================================================
+    // VECTOR DATA DISPLAY LAYER
+    // This is the canvas on which user data is rendered
+    // =================================================
+
+    const vector_source_data_ref     = useRef<VectorSource>(new VectorSource({}))
+    const vector_layer_data_ref      = useRef(new VectorLayer({
+        source:vector_source_data_ref.current,
+        style:(item) => new Style({
+            stroke:new Stroke({
+                width:item.getProperties()["line_width"],
+                color:item.getProperties()["colour"]
+            })
+        })
+    }))
 
     // ================
     // DRAG INTERACTION
     // ================
-    const drag_interaction_ref       = useRef<DragBox>((()=>{
-        let result = new DragBox({
+    const drag_interaction_ref       = useRefFactory<DragBox>(()=>{
+        const drag_interaction = new DragBox({
             condition:local_platformModifierKeyOnly,
         })
-        result.setActive(props.allow_drag_box_selection); // not available as a constructor option
-        return result;
-    })())
-
-    useEffect(()=>{
-        drag_interaction_ref.current.setActive(props.allow_drag_box_selection)
-    },[props.allow_drag_box_selection])
-
-    // ==================
-    // SELECT INTERACTION
-    // ==================
-    const select_interaction_ref     = useRef<Select | null>(null)
-
-
-    // ==========
-    // MAP OBJECT
-    // ==========
-    const map_ref = useRef(new OpenLayersMap({
-        controls:[
-            new Rotate(),
-            new ScaleLine()
-        ],
-        view:new View({
-            zoom:5,
-            center:western_australia_centroid
-        })
-    }));
-
-
-    // =====
-    // MOUNT
-    // =====
-    useEffect(()=>{
-        let map = map_ref.current;
-        map.setTarget(map_root_ref.current);
-        let vector_layer_data = new VectorLayer({
-            source:vector_source_data_ref.current,
-            style:(item) => new Style({
-                stroke:new Stroke({
-                    width:item.getProperties()["line_width"],
-                    color:item.getProperties()["colour"]
-                })
-            })
-        })
-        select_interaction_ref.current = new Select({
-            layers:[vector_layer_data],
-            hitTolerance:4,
-            style:item => [
-                new Style({
-                    stroke:new Stroke({
-                        width:8,
-                        color:"white"
-                    })
-                }),
-                new Style({
-                    stroke:new Stroke({
-                        width:2.5,
-                        color:item.getProperties()["colour"]
-                    })
-                })
-            ]
-        });
-        map.addInteraction(select_interaction_ref.current);
-        map.addInteraction(drag_interaction_ref.current);
-        drag_interaction_ref.current.on('boxend', (event) => {
-            
+        drag_interaction.setActive(props.allow_drag_box_selection); // not available as a constructor option
+        drag_interaction.on('boxend', event => {
             const extent = drag_interaction_ref.current.getGeometry().getExtent();
             let features_within_dragged_box_extent = vector_source_data_ref.current
                 .getFeaturesInExtent(extent)
                 .filter((feature) => feature.getGeometry().intersectsExtent(extent));
             
             // compensate for view rotation
-            const map_rotation = map.getView().getRotation();
+            const map_rotation = map_ref.current.getView().getRotation();
             if (map_rotation % (Math.PI / 2) !== 0) {
                 const anchor = [0, 0];
                 const drag_box_geometry_rotated = drag_interaction_ref.current.getGeometry().clone();
@@ -192,10 +148,37 @@ export function NickMap(props:NickMapProps){
             props.selection_manager.select(select_interaction_ref.current.getFeatures().getArray().map(item=>item.get("selection_id")))
             update_status_selection_count_helper(select_interaction_ref.current.getFeatures().getLength(), select_status_display_ref)
         })
-        
-        select_interaction_ref.current.on("select", e => {
-            //if((e.mapBrowserEvent.originalEvent as MouseEvent).isTrusted) // TODO: is this check needed?
-            console.log(`Select Interaction on select_interaction_ref.current.on("select",({selected.length:${e.selected.length}, deselected.length:${e.deselected.length}})=>{})`)
+        return drag_interaction;
+    })
+
+    useEffect(()=>{
+        drag_interaction_ref.current.setActive(props.allow_drag_box_selection)
+    },[props.allow_drag_box_selection])
+
+    // ==================
+    // SELECT INTERACTION
+    // ==================
+    const select_interaction_ref     = useRefFactory<Select>(()=>{
+        const select_interaction = new Select({
+            layers:[vector_layer_data_ref.current],
+            hitTolerance:4,
+            style:item => [
+                new Style({
+                    stroke:new Stroke({
+                        width:8,
+                        color:"white"
+                    })
+                }),
+                new Style({
+                    stroke:new Stroke({
+                        width:2.5,
+                        color:item.getProperties()["colour"]
+                    })
+                })
+            ]
+        })
+        select_interaction.on("select", e => {
+            // console.log(`Select Interaction on select_interaction_ref.current.on("select",({selected.length:${e.selected.length}, deselected.length:${e.deselected.length}})=>{})`)
             // NOTE: the event only gives the diff. For the complete list of
             //       selections we need to refer to the feature collection:
             let selected_items = select_interaction_ref.current.getFeatures().getArray()
@@ -229,29 +212,51 @@ export function NickMap(props:NickMapProps){
                     }
                 });
         });
-        
-        // Set up road network layer group
-        layer_state_road_ticks_ref.current = get_layer_state_road_ticks(map)
-        let road_network_layer_group = new LayerGroup({
-            layers:[
-                layer_state_road,
-                layer_state_road_ticks_ref.current,
-            ]
-        });
+        return select_interaction
+    })
 
-        // Build map
-        map.setLayers(new Collection([
-            new LayerGroup({
-                layers:[
-                    layer_open_street_map,
-                    layer_arcgis_rest,
-                    layer_wmts,
-                ]
+    
+    // ========================
+    // ROAD NETWORK LAYER GROUP
+    // ========================
+
+    const road_network_layers_ref = useRef(new LayerGroup({
+        layers:[
+            layer_state_road,
+        ]
+    }))
+
+
+    // ==========
+    // MAP OBJECT
+    // ==========
+    const map_ref = useRefFactory<OpenLayersMap>(()=>{
+        let map = new OpenLayersMap({
+            // target:map_root_ref.current,
+            controls:[
+                new Rotate(),
+                new ScaleLine()
+            ],
+            view:new View({
+                zoom:5,
+                center:western_australia_centroid
             }),
-            road_network_layer_group,
-            vector_layer_data,
-        ]))
-
+            interactions:default_interactions().extend([
+                drag_interaction_ref.current,
+                select_interaction_ref.current
+            ]),
+            layers:[
+                new LayerGroup({
+                    layers:[
+                        layer_open_street_map,
+                        layer_arcgis_rest,
+                        layer_wmts,
+                    ]
+                }),
+                road_network_layers_ref.current,
+                vector_layer_data_ref.current,
+            ]
+        })
         map.getViewport().addEventListener("dragenter",function(event){
             event.dataTransfer.dropEffect = "move";
         })
@@ -270,16 +275,39 @@ export function NickMap(props:NickMapProps){
                 goto_google_street_view(loc, props.host);
             }
         });
-        render_features_helper(
-            vector_source_data_ref.current,
-            props.feature_collection,
-            map_ref.current,
-            props.selection_manager,
-            select_interaction_ref.current,
-            select_status_display_ref,
-        );
-    },[]);
+        map.on("movestart",event=>{
+            props.tooltip_service.hide({immediately:true, isTouchEvent:false});
+        })
+        return map
+    });
+    useEffect(()=>{
+        // Mount Map
+        map_ref.current.setTarget(map_root_ref.current)
+    },[])
 
+    // =====================================================
+    // SLK TICKS LAYER
+    // Must be created after map due to annoying API problem
+    // =====================================================
+    const layer_state_road_ticks_ref = useRefFactory<VectorLayer<VectorSource>>(()=>{
+        const layer_state_road_ticks = get_layer_state_road_ticks(map_ref.current);
+        road_network_layers_ref.current.getLayers().push(layer_state_road_ticks)
+        return layer_state_road_ticks
+    });
+    
+
+    // =============================
+    // OPEN STREET MAP LAYER EFFECTS
+    // =============================
+    useEffect(()=>{
+        layer_open_street_map.__GREYSCALE  = props.layer_osm_greyscale;
+        layer_open_street_map.__BRIGHTNESS = props.layer_osm_brightness;
+        layer_wmts           .__GREYSCALE  = props.layer_osm_greyscale;
+        layer_wmts           .__BRIGHTNESS = props.layer_osm_brightness;
+        layer_arcgis_rest    .__GREYSCALE  = props.layer_osm_greyscale;
+        layer_arcgis_rest    .__BRIGHTNESS = props.layer_osm_brightness;
+    },[props.layer_osm_greyscale, props.layer_osm_brightness])
+    
 
     // ===============================
     // ROAD NETWORK STYLE & VISIBILITY
@@ -360,12 +388,6 @@ export function NickMap(props:NickMapProps){
         );
     },[props.feature_collection])
 
-    // ==============
-    // ZOOM TO EXTENT
-    // ==============
-    const zoom_to_extent = React.useCallback(()=>{
-        do_auto_zoom(map_ref.current, vector_source_data_ref.current)
-    },[map_ref.current, vector_source_data_ref.current])
 
     // ==================
     // ZOOM TO ROAD / SLK
@@ -423,7 +445,7 @@ export function NickMap(props:NickMapProps){
                     layer_road_network_ticks_show     = {layer_road_network_ticks_show}
                     set_layer_road_network_ticks_show = {set_layer_road_network_ticks_show}
                     
-                    on_zoom_to_extent           = {zoom_to_extent}
+                    on_zoom_to_extent           = {()=>do_auto_zoom(map_ref.current, vector_source_data_ref.current)}
                     on_zoom_to_road_slk         = {zoom_to_road_slk}
                     zoom_to_road_slk_state      = {zoom_to_road_slk_state}
                     auto_zoom                   = {auto_zoom}
@@ -436,7 +458,7 @@ export function NickMap(props:NickMapProps){
                 <div className="nickmap-status-text">{
                     build_status_display(props)
                 }</div>
-                <div ref={select_status_display_ref}>{`Selected: ${props.selection_manager.getSelectionIds().length}`}</div>
+                <div ref={select_status_display_ref} className="nickmap-status-selected">{`Selected: ${props.selection_manager.getSelectionIds().length}`}</div>
                 <div className="nickmap-version-text" title={props.version_text}>{props.version_text}</div>
             </div>
         </div>
@@ -458,7 +480,7 @@ function build_status_display(props:NickMapProps){
                     props.feature_collection_request_count !== props.feature_collection.features.length &&
                     <span className='nickmap-status-text-warning'>{`NOT SHOWING ${props.feature_collection_request_count-props.feature_collection.features.length} INVALID ROWS. `}</span>
                 }</>
-                <>{`Showing ${props.feature_collection.features.length} feature${props.feature_collection.features.length===1?"":"s"}`}</>
+                <>{`Showing ${props.feature_collection.features.length}`}</>
             </>
         case "FAILED":
             return <span className='nickmap-status-text-error'>

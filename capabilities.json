@@ -80,7 +80,10 @@
                 "url_wmts"             : {"type": {"text":true}},
                 "url_wmts_show"        : {"type": {"bool":true}},
                 "url_tile_arcgis"      : {"type": {"text":true}},
-                "url_tile_arcgis_show" : {"type": {"bool":true}}
+                "url_tile_arcgis_show" : {"type": {"bool":true}},
+
+                "osm_brightness"       :{"type": {"numeric":true}},
+                "osm_greyscale"        :{"type": {"numeric":true}}
             }
         },
         "map_behaviour": {
