@@ -88,7 +88,9 @@ export function NickMap(props:NickMapProps){
     const [layer_wmts_show              , set_layer_wmts_show              ] = useState(props.layer_wmts_show_initial);
     const [layer_road_network_show      , set_layer_road_network_show      ] = useState(props.layer_road_network_show_initial);
     const [layer_road_network_ticks_show, set_layer_road_network_ticks_show] = useState(props.layer_road_network_ticks_show_initial);
-    const [zoom_to_road_slk_state       , set_zoom_to_road_slk_state       ] = React.useState<Fetch_Data_State>({type:"IDLE"})
+    const [zoom_to_road_slk_state       , set_zoom_to_road_slk_state       ] = useState<Fetch_Data_State>({type:"IDLE"});
+    
+    const select_status_display_ref  = useRef<HTMLDivElement | null>(null)
     const vector_source_data_ref     = useRef<VectorSource>(new VectorSource({}))
     const map_root_ref               = useRef<HTMLDivElement>();
     const layer_state_road_ticks_ref = useRef<VectorLayer<VectorSource> | null>(null);
@@ -105,7 +107,7 @@ export function NickMap(props:NickMapProps){
         drag_interaction_ref.current.setActive(props.allow_drag_box_selection)
     },[props.allow_drag_box_selection])
     
-    const select_interaction_ref     = useRef<Select>(null)
+    const select_interaction_ref     = useRef<Select | null>(null)
     const map_ref = useRef(new OpenLayersMap({
         controls:[
             new Rotate(),
@@ -140,6 +142,7 @@ export function NickMap(props:NickMapProps){
         })
         select_interaction_ref.current = new Select({
             layers:[vector_layer_data],
+            hitTolerance:4,
             style:item => [
                 new Style({
                     stroke:new Stroke({
@@ -158,56 +161,51 @@ export function NickMap(props:NickMapProps){
         map.addInteraction(select_interaction_ref.current);
         map.addInteraction(drag_interaction_ref.current);
         drag_interaction_ref.current.on('boxend', (event) => {
+            
             const extent = drag_interaction_ref.current.getGeometry().getExtent();
-            const boxFeatures = vector_source_data_ref.current
+            let features_within_dragged_box_extent = vector_source_data_ref.current
                 .getFeaturesInExtent(extent)
                 .filter((feature) => feature.getGeometry().intersectsExtent(extent));
-            // features that intersect the box geometry are added to the
-            // collection of selected features
-
-            // if the view is not obliquely rotated the box geometry and
-            // its extent are equivalent so intersecting features can
-            // be added directly to the collection
             
-            const rotation = map.getView().getRotation();
-            const oblique = rotation % (Math.PI / 2) !== 0;
-
-            // when the view is obliquely rotated the box extent will
-            // exceed its geometry so both the box and the candidate
-            // feature geometries are rotated around a common anchor
-            // to confirm that, with the box geometry aligned with its
-            // extent, the geometries intersect
-            if (oblique) {
+            // compensate for view rotation
+            const map_rotation = map.getView().getRotation();
+            if (map_rotation % (Math.PI / 2) !== 0) {
                 const anchor = [0, 0];
-                const geometry = drag_interaction_ref.current.getGeometry().clone();
-                geometry.rotate(-rotation, anchor);
-                const extent = geometry.getExtent();
-                const selection_list = [];
-                boxFeatures.forEach(function (feature) {
-                    const geometry = feature.getGeometry().clone();
-                    geometry.rotate(-rotation, anchor);
-                    if (geometry.intersectsExtent(extent)) {
-                        select_interaction_ref.current.getFeatures().push(feature);
-                        selection_list.push(...select_interaction_ref.current.getFeatures().getArray().map(item=>item.get("selection_id")))
-                    }
+                const drag_box_geometry_rotated = drag_interaction_ref.current.getGeometry().clone();
+                drag_box_geometry_rotated.rotate(-map_rotation, anchor);
+                const drag_box_geometry_rotated_extent = drag_box_geometry_rotated.getExtent();
+                features_within_dragged_box_extent = features_within_dragged_box_extent.filter(feature => {
+                    const feature_geometry_rotated = feature.getGeometry().clone();
+                    feature_geometry_rotated.rotate(-map_rotation, anchor);
+                    return feature_geometry_rotated.intersectsExtent(drag_box_geometry_rotated_extent);
                 });
-                props.selection_manager.select(selection_list)
-            } else {
-                select_interaction_ref.current.getFeatures().extend(boxFeatures);
-                props.selection_manager.select(select_interaction_ref.current.getFeatures().getArray().map(item=>item.get("selection_id")))
             }
+            // Don't add features which are already selected
+            features_within_dragged_box_extent = features_within_dragged_box_extent.filter(item=>select_interaction_ref.current.getFeatures().getArray().findIndex(selected_item=>selected_item===item)===-1)
+            select_interaction_ref.current.getFeatures().extend(features_within_dragged_box_extent);
+            props.selection_manager.select(select_interaction_ref.current.getFeatures().getArray().map(item=>item.get("selection_id")))
+            update_status_selection_count_helper(select_interaction_ref.current.getFeatures().getLength(), select_status_display_ref)
         })
         
         select_interaction_ref.current.on("select", e => {
             //if((e.mapBrowserEvent.originalEvent as MouseEvent).isTrusted) // TODO: is this check needed?
-            //console.log("TODO MOUNT - Select Interaction on Select")
+            console.log(`Select Interaction on select_interaction_ref.current.on("select",({selected.length:${e.selected.length}, deselected.length:${e.deselected.length}})=>{})`)
+            // NOTE: the event only gives the diff. For the complete list of
+            //       selections we need to refer to the feature collection:
+            let selected_items = select_interaction_ref.current.getFeatures().getArray()
             props.selection_manager
                 .clear()
                 .then(
-                    ()=>props.selection_manager.select(e.selected.map(item=>item.get("selection_id")))
-                ).then(()=>{
-                    let selected_item_tooltips:feature_tooltip_items[] = e.selected.map(item=>item.get("tooltips"))
-                    if(selected_item_tooltips.length===1){
+                    ()=>{
+                        props.tooltip_service.hide({immediately:true, isTouchEvent:false});
+                        update_status_selection_count_helper(selected_items.length, select_status_display_ref)
+                        if(selected_items.length>0){
+                            return props.selection_manager.select(selected_items.map(item=>item.get("selection_id")))
+                        }
+                    }
+                ).then((selection_ids)=>{
+                    let selected_item_tooltips:feature_tooltip_items[] = selected_items.map(item=>item.get("tooltips"))
+                    if(selected_item_tooltips.length===1 && selected_item_tooltips[0].length > 0){
                         props.tooltip_service.show({
                             coordinates:[
                                 e.mapBrowserEvent.originalEvent.clientX,
@@ -220,11 +218,11 @@ export function NickMap(props:NickMapProps){
                                 header: ""
                             })),
                             isTouchEvent:e.mapBrowserEvent.originalEvent?.pointerType==="touch",
-                            identities:e.selected.map(item=>item.get("selection_id"))
+                            identities:selection_ids
                         })
                     }
                 });
-        })
+        });
         
         // Set up road network layer group
         layer_state_road_ticks_ref.current = get_layer_state_road_ticks(map)
@@ -269,7 +267,10 @@ export function NickMap(props:NickMapProps){
         render_features_helper(
             vector_source_data_ref.current,
             props.feature_collection,
-            map_ref.current
+            map_ref.current,
+            props.selection_manager,
+            select_interaction_ref.current,
+            select_status_display_ref,
         );
     },[]);
 
@@ -300,35 +301,7 @@ export function NickMap(props:NickMapProps){
         }
     },[layer_road_network_show, layer_road_network_ticks_show, layer_state_road_ticks_ref.current]);
 
-    // =====================
-    // SYNCHRONIZE SELECTION
-    // =====================
-    //useEffect(()=>{
-        // if(!select_interaction_ref.current) return;
-        // let selected_features = select_interaction_ref.current.getFeatures()
-        // selected_features.clear()
-        // for(let feature_selection_id of props.selection){
-        //     // TODO: this is probably slow
-        //     const found_feature = vector_source_data_ref.current.getFeatures().find(feature=>feature.get("selection_id").equals(feature_selection_id));
-        //     if (found_feature){
-        //         selected_features.push(found_feature)
-        //     }
-        // }
-    //},[(), props.set_selection, select_interaction_ref.current,vector_source_data_ref.current])
-
-    if(props.selection_manager.hasSelection()){
-        if(!select_interaction_ref.current) return;
-        let selected_features = select_interaction_ref.current.getFeatures()
-        selected_features.clear()
-        for(let feature_selection_id of props.selection_manager.getSelectionIds()){
-            // TODO: this is probably slow
-            const found_feature = vector_source_data_ref.current.getFeatures().find(feature=>feature.get("selection_id").equals(feature_selection_id));
-            if (found_feature){
-                selected_features.push(found_feature)
-            }
-        }
-    }
-
+    
 
     // ============================
     // WMTS RASTER LAYER VISIBILITY
@@ -374,10 +347,12 @@ export function NickMap(props:NickMapProps){
             vector_source_data_ref.current,
             props.feature_collection,
             map_ref.current,
+            props.selection_manager,
+            select_interaction_ref.current,
+            select_status_display_ref,
             auto_zoom
         );
     },[props.feature_collection])
-
 
     // ==============
     // ZOOM TO EXTENT
@@ -455,6 +430,7 @@ export function NickMap(props:NickMapProps){
                 <div className="nickmap-status-text">{
                     build_status_display(props)
                 }</div>
+                <div ref={select_status_display_ref}>{`Selected: ${props.selection_manager.getSelectionIds().length}`}</div>
                 <div className="nickmap-version-text" title={props.version_text}>{props.version_text}</div>
             </div>
         </div>
@@ -491,6 +467,7 @@ function build_status_display(props:NickMapProps){
     }
 }
 
+
 /**
  * This function is used because `map.getView().setProperties()` does not work as expected
  * it is pretty annoying
@@ -501,7 +478,9 @@ function set_view_properties(map:OpenLayersMap, zoom:number, center:number[]){
     view.setCenter(center);
 }
 
-
+/**
+*  Make a Map either zoom to the extent of a vector source, or to a default extent (Show all of Western Australia)
+*/
 function do_auto_zoom(map:OpenLayersMap,vector_source:VectorSource){
     if (vector_source.isEmpty()){
         map.getView().fit(western_australia_extent);
@@ -514,6 +493,9 @@ function render_features_helper(
     vector_source_data:VectorSource,
     feature_collection:NickmapFeatureCollection,
     map:OpenLayersMap,
+    selection_manager  : powerbi.extensibility.ISelectionManager,
+    select_interaction : Select,
+    select_status_display_ref:React.MutableRefObject<HTMLDivElement>,
     zoom_to_extent = true
 ){
     vector_source_data.clear()
@@ -527,4 +509,30 @@ function render_features_helper(
             do_auto_zoom(map, vector_source_data);
         }
     }
+    ///////////////////////
+    // SYNCHRONIZE SELECTION
+    ///////////////////////
+    const select_interaction_features = select_interaction.getFeatures()
+    select_interaction_features.clear()
+    if(selection_manager.hasSelection()){
+        const features = vector_source_data.getFeatures()
+        const selected_features = [];
+        const valid_selection_ids = [];
+        selection_manager.getSelectionIds().forEach(selection_id=>{
+            const found_feature = features.find(feature=>feature.get("selection_id").equals(selection_id));
+            if (found_feature){
+                valid_selection_ids.push(selection_id)
+                selected_features.push(found_feature)
+            }
+        })
+        //debugger
+        select_interaction_features.extend(selected_features)
+        selection_manager.clear()
+        selection_manager.select(valid_selection_ids)
+    }
+    update_status_selection_count_helper(select_interaction_features.getLength(), select_status_display_ref)
+}
+
+function update_status_selection_count_helper(count:number, select_status_display_ref:React.MutableRefObject<HTMLDivElement>){
+    select_status_display_ref.current.innerText = `Selected: ${count}`;
 }

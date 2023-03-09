@@ -47,21 +47,26 @@ export class BatchRequestJSONDeserializeError extends Error{}
 
 
 export async function batch_requests(
-    iter:Iterable<{
+    road_segments:{
         road_number: string,
         slk_from: number,
         slk_to: number,
         offset?: number,
         cwy?: string
-    }>,
+    }[],
     offset_multiplier:number
 ): Promise<NickmapFeatureCollection_ServerResponse> {
-    
+    if(road_segments.length===0){
+        return {
+            type: "FeatureCollection",
+            features: []
+        }
+    }
     let request_body_parts: Uint8Array[] = [];
     let request_body_byte_length = 0;
     let request_feature_length = 0;
     try{
-        for(let {road_number: road, slk_from, slk_to, offset=0, cwy="LRS"} of iter){
+        for(let {road_number: road, slk_from, slk_to, offset=0, cwy="LRS"} of road_segments){
             let request_bytes = binary_encode_request(road, slk_from, slk_to, offset*offset_multiplier, cwy);
             request_body_byte_length+=request_bytes.byteLength;
             request_body_parts.push(request_bytes);
