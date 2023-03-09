@@ -14,7 +14,7 @@
 .nickmap-controls-overlay{
     grid-row: 1;
     grid-column: 1;
-    z-index                        : 9999;
+    z-index: 9999;
     display:grid;
     grid-template-rows: 1fr auto;
     pointer-events: none;
@@ -30,7 +30,8 @@
     left:160px;
     z-index: 9999;
     display:grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 2fr auto auto;
+    gap:1em;
     
 }
 

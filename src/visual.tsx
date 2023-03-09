@@ -70,14 +70,14 @@ export class Visual implements IVisual {
             return;
         }
 
-
-        
         // Extract table Data View
         let dataview_table = options.dataViews[0].table;
         this.features_requested_count = dataview_table.rows.length;
         // TODO: allow transform_data_view to return array
         // TODO: allow transform_data_view to filter
         // TODO: also record the number of rows in the input dataframe to count transform failures
+
+        
         let input_properties = [];
         try{
             input_properties = [
@@ -92,56 +92,54 @@ export class Visual implements IVisual {
             console.log("Error transforming powerbi data into table")
             console.log(e)
             this.feature_loading_state = {type:"FAILED", reason:"Failed to interpret input data"}
+            // clear features
+            this.feature_collection = { type: "FeatureCollection", features: [] };
+            this.react_render_call();
+            return
+        }
+        this.feature_loading_state = {type:"PENDING"};
+        if(input_properties.length!==0){
+            // prevent double call in batch_requests.finally when there are no input properties
+            this.react_render_call();
+        }else{
+            // clear features
             this.feature_collection = { type: "FeatureCollection", features: [] };
         }
-        if(input_properties.length==0){
-            // All features may have been removed
-            this.feature_loading_state = {type:"SUCCESS"};
-            this.feature_collection = {
-                type     : "FeatureCollection",
-                features : []
-            }
-            this.react_render_call()
-        }else if(input_properties.length > 0){
-            this.feature_loading_state = {type:"PENDING"};
-            batch_requests(
-                input_properties.values(),
-                this.formattingSettings.advanced_settings.offset_multiplier.value
-            ).then(
-                (returned_features)=>{
-                    let features_filtered_and_coloured:NickmapFeatureCollection = {
-                        type     : "FeatureCollection",
-                        features : []
-                    }
-                    for(let [data_row, feature] of zip_arrays(input_properties, returned_features.features)){
-                        // feature may be null or have zero-sized coordinates array:
-                        if (feature && feature?.geometry?.coordinates){
-                            features_filtered_and_coloured.features.push(
-                                {
-                                    ...feature,
-                                    id : data_row.selection_id.getKey(),
-                                    properties:{
-                                        colour       : data_row.colour,
-                                        line_width   : data_row.line_width,
-                                        selection_id : data_row.selection_id,
-                                        tooltips     : data_row.tooltips,
-                                    }
-                                }
-                            )
-                        }
-                    }
-                    this.feature_loading_state = {type:"SUCCESS"}
-                    this.feature_collection = features_filtered_and_coloured;
-                    this.react_render_call()
-                },
-                failure=>{
-                    console.log(failure)
-                    this.feature_loading_state = {type:"FAILED", reason:failure.message}
-                    this.react_render_call()
+        batch_requests(
+            input_properties,
+            this.formattingSettings.advanced_settings.offset_multiplier.value
+        ).then(
+            (returned_features)=>{
+                let features_filtered_and_coloured:NickmapFeatureCollection = {
+                    type     : "FeatureCollection",
+                    features : []
                 }
-            )
-        }
-        this.react_render_call()
+                for(let [data_row, feature] of zip_arrays(input_properties, returned_features.features)){
+                    // feature may be null or have zero-sized coordinates array:
+                    if (feature && feature?.geometry?.coordinates){
+                        features_filtered_and_coloured.features.push(
+                            {
+                                ...feature,
+                                id : data_row.selection_id.getKey(),
+                                properties:{
+                                    colour       : data_row.colour,
+                                    line_width   : data_row.line_width,
+                                    selection_id : data_row.selection_id,
+                                    tooltips     : data_row.tooltips,
+                                }
+                            }
+                        )
+                    }
+                }
+                this.feature_loading_state = {type:"SUCCESS"}
+                this.feature_collection = features_filtered_and_coloured;
+            }
+        ).catch(
+            failure=>{
+                console.log(failure)
+                this.feature_loading_state = {type:"FAILED", reason:failure.message}
+            }
+        ).finally(()=>this.react_render_call())
     }
 
     
@@ -190,33 +188,8 @@ export class Visual implements IVisual {
         )
     }
 
-    public async_setting_change(path:string, new_value:any){
-        //console.log(`PENDING ADD  : '${path}' '${new_value}'`)
-        let index = this.pending_settings_changes.findIndex(item=>item.path===path);
-        if(index > -1){
-            this.pending_settings_changes[index].new_value = new_value;
-        }else{
-            this.pending_settings_changes.push({path, new_value});
-        }
-        this.host.refreshHostData();
-    }
-    public apply_async_setting_changes() {
-        
-        for(let pending_settings_change of this.pending_settings_changes){
-            //console.log(`PENDING APPLY: '${pending_settings_change.path}' '${pending_settings_change.new_value}'`)
-            let path = pending_settings_change.path.split(".");
-            let pointer = this.formattingSettings;
-            for(let attribute of path.slice(0,-1)){
-                pointer = pointer[attribute];
-            }
-            pointer[path.at(-1)] = pending_settings_change.new_value
-        }
-    }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {
-        //this.pending_settings_changes = [];
-        console.log("getFormattingModel")
-        // I think this makes it so that if you change `this.formattingSettings` then the results are returned to the UI? I will test.
         return this.formattingSettingsService.buildFormattingModel(this.formattingSettings);
     }
 }
