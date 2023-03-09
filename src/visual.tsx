@@ -154,7 +154,7 @@ export class Visual implements IVisual {
         ReactDOM.render(
             <NickMap
                 host={this.host}
-                version_text = "v4.1.2 NickMapBI"
+                version_text = "v4.1.3 NickMapBI"
 
                 layer_arcgis_rest_url                 = {map_background_settings.url_tile_arcgis.value}
                 layer_arcgis_rest_show_initial        = {map_background_settings.url_tile_arcgis_show.value}
@@ -167,8 +167,9 @@ export class Visual implements IVisual {
                 layer_road_network_state_colour       = {road_network_settings.state_road_colour.value.value}
                 layer_road_network_psp_colour         = {road_network_settings.psp_colour.value.value}
 
-                layer_osm_brightness                  = {map_background_settings.osm_brightness.value}
-                layer_osm_greyscale                   = {map_background_settings.osm_greyscale.value}
+                layer_raster_brightness               = {map_background_settings.osm_brightness.value}
+                layer_raster_contrast                 = {map_background_settings.osm_contrast.value}
+                layer_raster_saturation               = {map_background_settings.osm_saturation.value}
 
                 auto_zoom_initial                     = {map_behaviour_settings.auto_zoom.value}
                 controls_size                         = {map_behaviour_settings.controls_size.value}
