@@ -109,16 +109,16 @@ function state_road_vector_layer_style_function(feature, resolution) {
 }
 
 
-function other_road_vector_layer_style_function(feature, resolution) {
-	let result =  road_network_styles[feature.get("NETWORK_TYPE")] ?? road_network_styles["DEFAULT"];
-	if (resolution < 0.8) {
-		let stl = road_name_text_style.clone();
-		stl.setText(feature.get("ROAD_NAME"))
-		result = result.clone()
-		result.setText(stl)
-	}
-	return result;
-}
+// function other_road_vector_layer_style_function(feature, resolution) {
+// 	let result =  road_network_styles[feature.get("NETWORK_TYPE")] ?? road_network_styles["DEFAULT"];
+// 	if (resolution < 0.8) {
+// 		let stl = road_name_text_style.clone();
+// 		stl.setText(feature.get("ROAD_NAME"))
+// 		result = result.clone()
+// 		result.setText(stl)
+// 	}
+// 	return result;
+// }
 
 
 
@@ -171,13 +171,21 @@ let custom_renderer_with_SLK_ticks:(map:Map)=>RenderFunction = (map:Map) => (_pi
 		//ticks = linestring_ticks(mls, slk_from, slk_to, 0.01, 10, canvas_size_x/pixle_ratio, canvas_size_y/pixle_ratio);
 		ticks = linestring_ticks(mls, slk_from, slk_to, 0.01, 10, canvas_size_x, canvas_size_y, decimal_figures);
 	} else if (state.resolution < 4) {
-		decimal_figures = 0
+		decimal_figures = 1
 		//ticks = linestring_ticks(mls, slk_from, slk_to, 0.1, 10, canvas_size_x/pixle_ratio, canvas_size_y/pixle_ratio);
-		ticks = linestring_ticks(mls, slk_from, slk_to, 0.1, 10, canvas_size_x, canvas_size_y, decimal_figures);
-	} else {
+		ticks = linestring_ticks(mls, slk_from, slk_to, 0.1, 5, canvas_size_x, canvas_size_y, decimal_figures);
+	} else if(state.resolution < 15 ) {
 		decimal_figures = 0
 		//ticks = linestring_ticks(mls, slk_from, slk_to, 0.1, 10, canvas_size_x/pixle_ratio, canvas_size_y/pixle_ratio);
 		ticks = linestring_ticks(mls, slk_from, slk_to, 1, 1, canvas_size_x, canvas_size_y, decimal_figures);
+	} else if(state.resolution < 80 ){
+		decimal_figures = 0
+		//ticks = linestring_ticks(mls, slk_from, slk_to, 0.1, 10, canvas_size_x/pixle_ratio, canvas_size_y/pixle_ratio);
+		ticks = linestring_ticks(mls, slk_from, slk_to, 10, 1, canvas_size_x, canvas_size_y, decimal_figures);
+	} else {
+		decimal_figures = 0
+		//ticks = linestring_ticks(mls, slk_from, slk_to, 0.1, 10, canvas_size_x/pixle_ratio, canvas_size_y/pixle_ratio);
+		ticks = linestring_ticks(mls, slk_from, slk_to, 50, 1, canvas_size_x, canvas_size_y, decimal_figures);
 	}
 	let tickmarks = ticks.map(item => [
 		[
@@ -219,7 +227,7 @@ let custom_renderer_with_SLK_ticks:(map:Map)=>RenderFunction = (map:Map) => (_pi
 export let layer_state_road = new VectorLayer({
 	source: state_road_only_vector_source,
 	style: state_road_vector_layer_style_function,
-	minZoom: 8,
+	minZoom: 6,
 });
 /**
  * Due to an irritating problem
@@ -231,5 +239,5 @@ export let get_layer_state_road_ticks = map => new VectorLayer({
 	style: new Style({
 		renderer:custom_renderer_with_SLK_ticks(map)
 	}),
-	minZoom: 12,
+	minZoom: 8,
 });

@@ -35,20 +35,20 @@
     
 }
 
-.nickmap-status-text{
+.nickmap-status-text, .nickmap-status-selected{
     color: #000;
     text-shadow:
-    -1px -1px 1px white,
-    1px -1px 1px white,
-    -1px 1px 1px white,
-    1px 1px 1px white; 
+    -1px -1px 1px #CCC,
+    1px -1px 1px #CCC,
+    -1px 1px 1px #CCC,
+    1px 1px 1px #CCC;
 }
 .nickmap-version-text{
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     text-align: right;
-    color: #000B;
+    color: #BBBB;
 }
 
 .nickmap-status-text-warning{

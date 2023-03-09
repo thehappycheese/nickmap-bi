@@ -97,7 +97,7 @@ export async function batch_requests(
             }
         );
     }catch(e){
-        throw new BatchRequestFetchError(`BatchRequestFetchError(${e.message.slice(0,20)})`,{cause:e})
+        throw new BatchRequestFetchError(`BatchRequestFetchError(${e.message})`,{cause:e})
     }
     if (!response.ok) {
         throw new BatchRequestResponseError(`BatchRequestResponseError(${response.status.toString()},${response.statusText})`,{cause:response})
