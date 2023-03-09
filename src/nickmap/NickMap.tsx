@@ -95,6 +95,9 @@ export function NickMap(props:NickMapProps){
     const map_root_ref               = useRef<HTMLDivElement>();
     const layer_state_road_ticks_ref = useRef<VectorLayer<VectorSource> | null>(null);
 
+    // ================
+    // DRAG INTERACTION
+    // ================
     const drag_interaction_ref       = useRef<DragBox>((()=>{
         let result = new DragBox({
             condition:local_platformModifierKeyOnly,
@@ -106,8 +109,16 @@ export function NickMap(props:NickMapProps){
     useEffect(()=>{
         drag_interaction_ref.current.setActive(props.allow_drag_box_selection)
     },[props.allow_drag_box_selection])
-    
+
+    // ==================
+    // SELECT INTERACTION
+    // ==================
     const select_interaction_ref     = useRef<Select | null>(null)
+
+
+    // ==========
+    // MAP OBJECT
+    // ==========
     const map_ref = useRef(new OpenLayersMap({
         controls:[
             new Rotate(),
@@ -119,12 +130,7 @@ export function NickMap(props:NickMapProps){
         })
     }));
 
-    // ===============================
-    // CLEAR SELECTION ON EVERY UPDATE
-    // ===============================
-    if(select_interaction_ref.current){
-        select_interaction_ref.current.getFeatures().clear();
-    }
+
     // =====
     // MOUNT
     // =====
