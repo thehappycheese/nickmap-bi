@@ -4,7 +4,7 @@
         "displayName": "NickMap BI",
         "guid": "nickmapbi82E1C4CFA7CF45C0BC3CD8771F27FDAF",
         "visualClassName": "Visual",
-        "version": "4.1.1",
+        "version": "4.1.2",
         "description": "Map linear data on the West Australian road network (using slk_from slk_to)",
         "supportUrl": "https://github.com/thehappycheese/nickmap-bi",
         "gitHubUrl": "https://github.com/thehappycheese/nickmap-bi"
