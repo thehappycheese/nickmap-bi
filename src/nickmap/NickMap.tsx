@@ -474,24 +474,26 @@ function build_status_display(props:NickMapProps){
             return <>
                 <>{
                     props.feature_collection_request_count===30_000 &&
-                    <span className="nickmap-status-text-error">LIMITED TO FIRST 30,000 ROWS! </span>
+                    <span className="nickmap-status-text-error">Limited to 30,000 rows! </span>
                 }</>
                 <>{
                     props.feature_collection_request_count !== props.feature_collection.features.length &&
-                    <span className='nickmap-status-text-warning'>{`NOT SHOWING ${props.feature_collection_request_count-props.feature_collection.features.length} INVALID ROWS. `}</span>
+                    <span className='nickmap-status-text-warning'>
+                        {`${props.feature_collection_request_count-props.feature_collection.features.length} rows could not be mapped. `}
+                    </span>
                 }</>
                 <>{`Showing ${props.feature_collection.features.length}`}</>
             </>
         case "FAILED":
             return <span className='nickmap-status-text-error'>
-                <>{`FAILED TO LOAD ${props.feature_collection_request_count} FEATURE${props.feature_collection_request_count===1?"":"S"}`}</>
+                <>{`FAILED TO LOAD ${props.feature_collection_request_count} ROWS`}</>
                 <br/>
                 <>{`(${props.feature_loading_state.reason})`}</>
             </span>
         case "IDLE":
             return <>Waiting for input</>
         case "PENDING":
-            return <>{`Loading ${props.feature_collection_request_count} feature${props.feature_collection_request_count===1?"":"s"}`}</>
+            return <>{`Loading ${props.feature_collection_request_count}`}</>
     }
 }
 

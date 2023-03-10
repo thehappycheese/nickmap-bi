@@ -25,23 +25,21 @@
     font-size: 12px;
     position:absolute;
     pointer-events: none;
-    bottom:2px;
-    right:2px;
-    left:160px;
+    bottom:8px;
+    right:8px;
+    left:8px;
     z-index: 9999;
     display:grid;
-    grid-template-columns: 2fr auto auto;
+    grid-template-columns: 1fr auto auto auto;
     gap:1em;
     
 }
 
 .nickmap-status-text, .nickmap-status-selected{
     color: #000;
-    text-shadow:
-    -1px -1px 1px #CCC,
-    1px -1px 1px #CCC,
-    -1px 1px 1px #CCC,
-    1px 1px 1px #CCC;
+    background-color:rgba(255,255,255,0.75);
+    border-radius: 4px;
+    padding:3px;
 }
 .nickmap-version-text{
     overflow: hidden;
