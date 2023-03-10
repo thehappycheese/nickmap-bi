@@ -28,7 +28,7 @@ export class Visual implements IVisual {
     private host: powerbi.extensibility.visual.IVisualHost;
     private pending_settings_changes:{path:string,new_value:any}[];
     private feature_collection: NickmapFeatureCollection;
-    private features_requested_count: number;
+    private features_requested_count: number = 0;
     private feature_loading_state:Fetch_Data_State = {type:"IDLE"};
     private selection_manager: powerbi.extensibility.ISelectionManager;
     // private storage: powerbi.extensibility.ILocalVisualStorageService; // Cant use this without verifying the visual
@@ -52,7 +52,6 @@ export class Visual implements IVisual {
         );
         this.formattingSettingsService = new FormattingSettingsService();
         this.feature_collection = {type:"FeatureCollection", features:[]};
-        this.features_requested_count = 0;
     }
 
     public update(options: VisualUpdateOptions) {
@@ -80,14 +79,12 @@ export class Visual implements IVisual {
         
         let input_properties = [];
         try{
-            input_properties = [
-                ...transform_data_view(
-                    dataview_table,
-                    this.host,
-                    this.formattingSettings.line_format_settings.default_line_width.value,
-                    this.formattingSettings.line_format_settings.default_line_colour.value.value,
-                )
-            ]
+            input_properties = transform_data_view(
+                dataview_table,
+                this.host,
+                this.formattingSettings.line_format_settings.default_line_width.value,
+                this.formattingSettings.line_format_settings.default_line_colour.value.value,
+            )
         }catch(e){
             console.log("Error transforming powerbi data into table")
             console.log(e)
@@ -116,7 +113,7 @@ export class Visual implements IVisual {
                 }
                 for(let [data_row, feature] of zip_arrays(input_properties, returned_features.features)){
                     // feature may be null or have zero-sized coordinates array:
-                    if (feature && feature?.geometry?.coordinates){
+                    if (feature && feature?.geometry?.coordinates && feature?.geometry?.coordinates.length !== 0){
                         features_filtered_and_coloured.features.push(
                             {
                                 ...feature,
