@@ -94,6 +94,8 @@ export function NickMap(props:NickMapProps){
     const [layer_road_network_show      , set_layer_road_network_show      ] = useState(props.layer_road_network_show_initial);
     const [layer_road_network_ticks_show, set_layer_road_network_ticks_show] = useState(props.layer_road_network_ticks_show_initial);
     const [zoom_to_road_slk_state       , set_zoom_to_road_slk_state       ] = useState<Fetch_Data_State>({type:"IDLE"});
+
+    const [show_explanation, set_show_explanation]                           = useState({show:false, explanation:<></>})
    
     const select_status_display_ref  = useRef<HTMLDivElement | null>(null)
     const map_root_ref               = useRef<HTMLDivElement>();
@@ -459,11 +461,26 @@ export function NickMap(props:NickMapProps){
                     {/* Grid Placeholder */}
                 </div>
                 <div className="nickmap-status-text">{
-                    build_status_display(props)
+                    build_status_display(props, ()=>set_show_explanation({
+                        show:true,
+                        explanation:<>
+                            Possibly Road Number is invalid, or the SLK From/To range is incorrect,
+                            or the SLK From/To range is in a Point of Equation.
+                            This visual relies on the version of the IRIS road network avalaible on the
+                            Main Roads open data portal; maybe that version does not have the road or SLK
+                            you are looking for.
+                        </>
+                    }))
                 }</div>
                 <div ref={select_status_display_ref} className="nickmap-status-selected">{`Selected: ${props.selection_manager.getSelectionIds().length}`}</div>
                 <div className="nickmap-version-text" title={props.version_text}>{props.version_text}</div>
             </div>
+            <div 
+                className='nickmap-modal-explanation'
+                style={{display:show_explanation.show?undefined:"none"}}
+                onClick={()=>set_show_explanation({show:false, explanation:<></>})}>{
+                show_explanation.explanation
+            }<button>OK</button></div>
         </div>
         <div ref={map_root_ref} className="nickmap-map-host"></div>
     </div>
@@ -471,7 +488,7 @@ export function NickMap(props:NickMapProps){
 
 
 
-function build_status_display(props:NickMapProps){
+function build_status_display(props:NickMapProps, show_why_cant_map_some_features:()=>void){
     switch(props.feature_loading_state.type){
         case "SUCCESS":
             return <>
@@ -482,10 +499,11 @@ function build_status_display(props:NickMapProps){
                 <>{
                     props.feature_collection_request_count !== props.feature_collection.features.length &&
                     <span className='nickmap-status-text-warning'>
-                        {`${props.feature_collection_request_count-props.feature_collection.features.length} rows could not be mapped. `}
+                        {`${props.feature_collection_request_count-props.feature_collection.features.length} rows could not be mapped `}
+                        <a href="#" style={{pointerEvents:"all"}} onClick={()=>show_why_cant_map_some_features()}>why?</a>
                     </span>
                 }</>
-                <>{`Showing ${props.feature_collection.features.length}`}</>
+                <>{` Showing ${props.feature_collection.features.length}`}</>
             </>
         case "FAILED":
             return <span className='nickmap-status-text-error'>
@@ -494,9 +512,15 @@ function build_status_display(props:NickMapProps){
                 <>{`(${props.feature_loading_state.reason})`}</>
             </span>
         case "IDLE":
-            return <>Waiting for input</>
+            return <>Starting up...</>
         case "PENDING":
             return <>{`Loading ${props.feature_collection_request_count}`}</>
+        case "MISSING INPUT":
+            return <span className='nickmap-status-text-warning'>
+                <>Missing columns;</>
+                <br/>
+                <>{props.feature_loading_state.reason}</>
+            </span>
     }
 }
 

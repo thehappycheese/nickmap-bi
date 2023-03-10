@@ -15,7 +15,7 @@ import * as ReactDOM from "react-dom";
 
 import { ControlsMode, NickMapBIFormattingSettings } from "./settings";
 
-import {transform_data_view} from './dataview_table_helpers'
+import {dataview_table_role_column_indices__all, transform_data_view} from './dataview_table_helpers'
 import {batch_requests} from './linref'
 import { zip_arrays} from './util/itertools'
 import { NickmapFeatureCollection } from "./NickmapFeatures";
@@ -71,11 +71,40 @@ export class Visual implements IVisual {
 
         // Extract table Data View
         let dataview_table = options.dataViews[0].table;
-        this.features_requested_count = dataview_table.rows.length;
+        
         // TODO: allow transform_data_view to return array
         // TODO: allow transform_data_view to filter
         // TODO: also record the number of rows in the input dataframe to count transform failures
 
+        // =============================================
+        // VERIFY INPUT TABLE HAS BASIC COLUMNS REQUIRED
+        // =============================================
+        
+        // TODO: this is called again internally in transform_data_view which is a waste. Can it be changed to a parameter?
+        const mandatory_columns = {
+            "road_number":"Road Number",
+            "slk_from"   :"SLK From",
+            "slk_to"     :"SLK To", 
+        };
+        const role_column_indicies = dataview_table_role_column_indices__all(dataview_table);
+        const columns_present = new Set([...Object.keys(mandatory_columns)].filter(item=>item in role_column_indicies))
+        const columns_missing = [...Object.keys(mandatory_columns)].filter(item=>!columns_present.has(item))
+        if(columns_missing.length>0){
+            // Missing all columns
+            
+            const missing_column_names = [...columns_missing].map(role_name=>mandatory_columns[role_name])
+            this.feature_loading_state = {
+                type:"MISSING INPUT",
+                reason:`${missing_column_names.join(', ')}`
+            }
+            this.feature_collection = { type: "FeatureCollection", features: [] };
+            this.react_render_call();
+            return
+        }
+
+        // =====================================
+        // BUILD DATASTRUCTURE FOR BATCH REQUEST
+        // =====================================
         
         let input_properties = [];
         try{
@@ -88,19 +117,27 @@ export class Visual implements IVisual {
         }catch(e){
             console.log("Error transforming powerbi data into table")
             console.log(e)
+            // TODO: we need to do better error messages here
             this.feature_loading_state = {type:"FAILED", reason:"Failed to interpret input data"}
-            // clear features
+            // clear features and render to show error status and empty map
             this.feature_collection = { type: "FeatureCollection", features: [] };
             this.react_render_call();
             return
         }
+
+        // ===============================================
+        // RUN BATCH REQUEST
+        // Note that `batch_requests` is an async function
+        // ===============================================
+        this.features_requested_count = dataview_table.rows.length;
         this.feature_loading_state = {type:"PENDING"};
-        if(input_properties.length!==0){
-            // prevent double call in batch_requests.finally when there are no input properties
-            this.react_render_call();
+        if(input_properties.length===0){
+            // batch_requests will return (almost) immediately,
+            // it will clear features, and set status to SUCCESS
         }else{
-            // clear features
-            this.feature_collection = { type: "FeatureCollection", features: [] };
+            // batch_requests will take some time to complete
+            // we need to do a render in the meantime to show "loading" status
+            this.react_render_call();
         }
         batch_requests(
             input_properties,

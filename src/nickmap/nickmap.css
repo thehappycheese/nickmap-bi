@@ -35,6 +35,24 @@
     
 }
 
+.nickmap-modal-explanation{
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform: translate(-50%, -50%);
+    background-color:  rgba(0,0,0,0.7);
+    color                      : seashell;
+    border-radius: 4px;
+    min-height: 5em;
+    min-width: 5em;
+    pointer-events: all;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    gap:1em;
+    padding:0.6em;
+    max-width: 80%;
+}
+
 .nickmap-status-text, .nickmap-status-selected{
     color: #000;
     background-color:rgba(255,255,255,0.75);
