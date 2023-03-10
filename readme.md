@@ -2,6 +2,11 @@
 
 A custom PowerBI visual for the Main Roads Western Australia Road Network
 
+
+Link to releases: [Releases](https://github.com/thehappycheese/nickmap-bi/releases)
+
+See full change log: [Change Log](./changelog.md)
+
 ## Required Data Format
 
 This visual is designed to map data in the following format over the Main Roads western Australia Road Network.
