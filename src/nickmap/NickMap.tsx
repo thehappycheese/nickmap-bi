@@ -455,6 +455,9 @@ export function NickMap(props:NickMapProps){
                 />
             }
             <div className="nickmap-status-version-display">
+                <div>
+                    {/* Grid Placeholder */}
+                </div>
                 <div className="nickmap-status-text">{
                     build_status_display(props)
                 }</div>
