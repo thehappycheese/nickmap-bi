@@ -108,7 +108,6 @@
     "dataViewMappings": [
         {
             "table": {
-                
                 "rows": {
                     "dataReductionAlgorithm": {
                         "top": {"count": 30000}
@@ -135,6 +134,8 @@
             ]
         }
     ],
+    "supportsEmptyDataView": true,
+    "supportsLandingPage": true,
     "suppressDefaultTitle": true,
     "tooltips": {
         "supportedTypes": {
