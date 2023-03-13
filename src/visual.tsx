@@ -15,7 +15,7 @@ import * as ReactDOM from "react-dom";
 
 import { ControlsMode, NickMapBIFormattingSettings } from "./settings";
 
-import {transform_data_view} from './dataview_table_helpers'
+import {dataview_table_role_column_indices__all, transform_data_view} from './dataview_table_helpers'
 import {batch_requests} from './linref'
 import { zip_arrays} from './util/itertools'
 import { NickmapFeatureCollection } from "./NickmapFeatures";
@@ -28,7 +28,7 @@ export class Visual implements IVisual {
     private host: powerbi.extensibility.visual.IVisualHost;
     private pending_settings_changes:{path:string,new_value:any}[];
     private feature_collection: NickmapFeatureCollection;
-    private features_requested_count: number;
+    private features_requested_count: number = 0;
     private feature_loading_state:Fetch_Data_State = {type:"IDLE"};
     private selection_manager: powerbi.extensibility.ISelectionManager;
     // private storage: powerbi.extensibility.ILocalVisualStorageService; // Cant use this without verifying the visual
@@ -52,7 +52,6 @@ export class Visual implements IVisual {
         );
         this.formattingSettingsService = new FormattingSettingsService();
         this.feature_collection = {type:"FeatureCollection", features:[]};
-        this.features_requested_count = 0;
     }
 
     public update(options: VisualUpdateOptions) {
@@ -72,38 +71,73 @@ export class Visual implements IVisual {
 
         // Extract table Data View
         let dataview_table = options.dataViews[0].table;
-        this.features_requested_count = dataview_table.rows.length;
+        
         // TODO: allow transform_data_view to return array
         // TODO: allow transform_data_view to filter
         // TODO: also record the number of rows in the input dataframe to count transform failures
 
+        // =============================================
+        // VERIFY INPUT TABLE HAS BASIC COLUMNS REQUIRED
+        // =============================================
         
-        let input_properties = [];
-        try{
-            input_properties = [
-                ...transform_data_view(
-                    dataview_table,
-                    this.host,
-                    this.formattingSettings.line_format_settings.default_line_width.value,
-                    this.formattingSettings.line_format_settings.default_line_colour.value.value,
-                )
-            ]
-        }catch(e){
-            console.log("Error transforming powerbi data into table")
-            console.log(e)
-            this.feature_loading_state = {type:"FAILED", reason:"Failed to interpret input data"}
-            // clear features
+        // TODO: this is called again internally in transform_data_view which is a waste. Can it be changed to a parameter?
+        const mandatory_columns = {
+            "road_number":"Road Number",
+            "slk_from"   :"SLK From",
+            "slk_to"     :"SLK To", 
+        };
+        const role_column_indicies = dataview_table_role_column_indices__all(dataview_table);
+        const columns_present = new Set([...Object.keys(mandatory_columns)].filter(item=>item in role_column_indicies))
+        const columns_missing = [...Object.keys(mandatory_columns)].filter(item=>!columns_present.has(item))
+        if(columns_missing.length>0){
+            // Missing all columns
+            
+            const missing_column_names = [...columns_missing].map(role_name=>mandatory_columns[role_name])
+            this.feature_loading_state = {
+                type:"MISSING INPUT",
+                reason:`${missing_column_names.join(', ')}`
+            }
             this.feature_collection = { type: "FeatureCollection", features: [] };
             this.react_render_call();
             return
         }
-        this.feature_loading_state = {type:"PENDING"};
-        if(input_properties.length!==0){
-            // prevent double call in batch_requests.finally when there are no input properties
-            this.react_render_call();
-        }else{
-            // clear features
+
+        // =====================================
+        // BUILD DATASTRUCTURE FOR BATCH REQUEST
+        // =====================================
+        
+        let input_properties = [];
+        try{
+            input_properties = transform_data_view(
+                dataview_table,
+                this.host,
+                this.formattingSettings.line_format_settings.default_line_width.value,
+                this.formattingSettings.line_format_settings.default_line_colour.value.value,
+            )
+        }catch(e){
+            console.log("Error transforming powerbi data into table")
+            console.log(e)
+            // TODO: we need to do better error messages here
+            this.feature_loading_state = {type:"FAILED", reason:"Failed to interpret input data"}
+            // clear features and render to show error status and empty map
             this.feature_collection = { type: "FeatureCollection", features: [] };
+            this.react_render_call();
+            return
+        }
+
+        // ===============================================
+        // RUN BATCH REQUEST
+        // Note that `batch_requests` is an async function
+        // ===============================================
+        this.features_requested_count = dataview_table.rows.length;
+        this.feature_loading_state = {type:"PENDING"};
+        if(input_properties.length===0){
+            // batch_requests will return (almost) immediately,
+            // it will clear features, and set status to SUCCESS
+        }else{
+            // batch_requests will take some time to complete
+            // we need to do a render in the meantime to show "loading" status
+            this.react_render_call();
         }
         batch_requests(
             input_properties,
@@ -116,7 +150,7 @@ export class Visual implements IVisual {
                 }
                 for(let [data_row, feature] of zip_arrays(input_properties, returned_features.features)){
                     // feature may be null or have zero-sized coordinates array:
-                    if (feature && feature?.geometry?.coordinates){
+                    if (feature && feature?.geometry?.coordinates && feature?.geometry?.coordinates.length !== 0){
                         features_filtered_and_coloured.features.push(
                             {
                                 ...feature,
@@ -154,7 +188,7 @@ export class Visual implements IVisual {
         ReactDOM.render(
             <NickMap
                 host={this.host}
-                version_text = "v4.1.3 NickMapBI"
+                version_text = "v4.1.4 NickMapBI"
 
                 layer_arcgis_rest_url                 = {map_background_settings.url_tile_arcgis.value}
                 layer_arcgis_rest_show_initial        = {map_background_settings.url_tile_arcgis_show.value}
