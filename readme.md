@@ -17,7 +17,6 @@ See full change log: [Change Log](./changelog.md)
 
 ## 1. Required Data Format
 
-
 ### 1.1. Example Data Table
 
 | Road Number | Carriageway | SLK From | SLK To | Offset (Metres) | Colour (CSS) | Tooltip (1) | Tooltip (2)          | ... |
@@ -35,13 +34,14 @@ See full change log: [Change Log](./changelog.md)
 | SLK To (kilometres)   |    No    |           No*            | End position of the datapoint (See description of [SLK](#slk-linear-referencing-system) below)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | Carriageway           |   Yes    |           No*            | Zero to three letters indicating the selected carriageways to be used as the road centreline for this datapoint.  Any combination or permutation of the letters `L`, `R`, `S` will work (Selecting for Left, Right and Single carriageways respectively). If left blank, the default behaviour is the same as `LRS` which selects all carriageways. When plotting data on the left of a road it is recommended that `LS` is used, such that if the road network alternates between dual and single carriageway your data will still be plotted.  `RS` can be used for data on the right. |
 | Offset (Metres)       |   Yes    |           No*            | Offset the linestring(s) after the road network centreline(s) is/are sampled. Positive values offset to the right hand side. Negative values offset to the left hand side. (See [Offset Direction](#offset-direction) Below)                                                                                                                                                                                                                                                                                                                                                             |
+| Colour (CSS)          |   Yes    |           No*            | For example `red` or `#FF0000` or `rgb(255,0,0)` or `rgba(255,0,0,0.5)`. Sets the colour of each linestring shown on the map. If a blank or invalid CSS colour is used the linestring will probably be black. See <https://developer.mozilla.org/en-US/docs/Web/CSS/color_value> for more information about CSS colour values.                                                                                                                                                                                                                                                           |
 | Tooltip(s)            |   Yes    |           Yes            | Any tooltip text                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 > *NOTE: There is a known issue regarding the number of columns accepted by each
-> field well; PowerBI will let you drop multiple columns into the `Road Number`
-> Field well, but only one of those columns can be used. The visual is supposed
-> to restrict the field well to accept only one column, but this behaviour is
-> not working correctly.
+> field-well; For example PowerBI will let you drop multiple columns into the
+> `Road Number` field-well, but only one of those columns will be used. The
+> visual is supposed to restrict the field-wells to accept only the correct
+> number of columns but currently it does not.
 
 ## 2. SLK Linear Referencing System
 
@@ -57,7 +57,7 @@ centreline, with several important asterisks:
 - Left and Right carriageways each have their own SLK referencing system however
   these are almost always aligned within 20 metres or so
 - SLK may not start from 0; for example Great Northern Highway H006 starts from SLK 3.17.
-- 
+
 
 > The "True Distance" referencing system is a true measure of distance along the
 > centreline without POE adjustments (may still have gaps though). This system
