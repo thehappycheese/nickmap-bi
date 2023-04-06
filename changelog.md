@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Goto will now work with non capitalised road numbers
+- Possibly fixed minor compatibility issue by removing unnecessary use of `AbortSignal.timeout()`
+- Goto will now work on any submit event including enter, but there are
+  outstanding problems with focus being annoyingly lost
+
 ## [4.1.4] - 2023-03-13
 
 ### Fixed

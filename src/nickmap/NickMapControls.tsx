@@ -39,6 +39,21 @@ export function NickMapControls (props:NickMapControlsComponentProps){
     const [show_zoomto_fail_explanation, set_show_zoomto_fail_explanation] = React.useState(false);
     const [zoom_to_slk, set_zoom_to_slk] = React.useState<number>(0)
     const zoom_to_road_input_ref = React.useRef<HTMLInputElement>()
+
+    const handleSubmit = React.useCallback(
+        (event) => {
+            console.log("Active Element", document.activeElement);
+            event.preventDefault();
+            set_show_zoomto_fail_explanation(false);
+            props.on_zoom_to_road_slk(
+                zoom_to_road_input_ref.current.value,
+                zoom_to_slk
+            );
+            zoom_to_road_input_ref.current.reportValidity();
+        },
+        [props.on_zoom_to_road_slk, set_show_zoomto_fail_explanation, zoom_to_slk]
+    );
+
     return <div className="nickmap-controls">
         
         { (hidden)?
@@ -123,7 +138,7 @@ export function NickMapControls (props:NickMapControlsComponentProps){
                     </label>
                 </div>
                 
-                <div className="nickmap-controls-zoomto-container">
+                <form className="nickmap-controls-zoomto-container" onSubmit={handleSubmit}>
                     <div className="nickmap-controls-zoomto-inputs">
                         <label htmlFor="nickmap-controls-zoomto-road">
                             Road
@@ -134,8 +149,10 @@ export function NickMapControls (props:NickMapControlsComponentProps){
                             value={zoom_to_road}
                             onChange={event=>set_zoom_to_road(event.target.value)}
                             type="text"
-                            required placeholder='eg. H001'
+                            required
+                            placeholder='eg. H001'
                             disabled={props.zoom_to_road_slk_state.type==="PENDING"}
+                            
                         />
                         <label htmlFor="nickmap-controls-zoomto-slk">
                             SLK
@@ -154,11 +171,7 @@ export function NickMapControls (props:NickMapControlsComponentProps){
                     </div>
                     <button
                         disabled={zoom_to_road==="" || props.zoom_to_road_slk_state.type==="PENDING"}
-                        onClick={()=>{
-                            set_show_zoomto_fail_explanation(false)
-                            props.on_zoom_to_road_slk(zoom_to_road_input_ref.current.value, zoom_to_slk)
-                            zoom_to_road_input_ref.current.reportValidity()
-                        }}
+                        onClick={handleSubmit}
                         title="Zoom the map to the selected Road / SLK"
                     >
                         Go
@@ -195,7 +208,7 @@ export function NickMapControls (props:NickMapControlsComponentProps){
                     }
                     
                     
-                </div>
+                </form>
             </div>
         }
     </div>;
