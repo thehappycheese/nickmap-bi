@@ -98,7 +98,7 @@ class MapBackgroundSettings extends formattingSettings.Card {
     osm_brightness = new formattingSettings.Slider({
         name        : "osm_brightness",
         displayName : "Brightness (%)",
-        description : "Controls the brightness of the background layers",
+        description : "Controls the brightness of the background layers. Default is 100%.",
         options     :{
             minValue:{type:powerbi.visuals.ValidatorType.Min, value:0},
             maxValue:{type:powerbi.visuals.ValidatorType.Max, value:200},
@@ -109,7 +109,7 @@ class MapBackgroundSettings extends formattingSettings.Card {
     osm_contrast = new formattingSettings.Slider({
         name        : "osm_contrast",
         displayName : "Contrast (%)",
-        description : "Controls the contrast of the background layers",
+        description : "Controls the contrast of the background layers. Default is 100%.",
         options     :{
             minValue:{type:powerbi.visuals.ValidatorType.Min, value:0},
             maxValue:{type:powerbi.visuals.ValidatorType.Max, value:200},
@@ -120,7 +120,7 @@ class MapBackgroundSettings extends formattingSettings.Card {
     osm_saturation = new formattingSettings.Slider({
         name        : "osm_saturation",
         displayName : "Saturation (%)",
-        description : "Controls the saturation of the background layers.",
+        description : "Controls the saturation of the background layers. Default is 50%.",
         options     :{
             minValue:{type:powerbi.visuals.ValidatorType.Min, value:0},
             maxValue:{type:powerbi.visuals.ValidatorType.Max, value:200},
