@@ -395,6 +395,7 @@ export function NickMap(props:NickMapProps){
     // ZOOM TO ROAD / SLK
     // ==================
     const zoom_to_road_slk = React.useCallback(async (road_number:string, slk:number)=>{
+        road_number = road_number.toUpperCase();
         console.log(`Zoom to ${road_number} ${slk}`)
         set_zoom_to_road_slk_state({"type":"PENDING"})
         let response = await fetch(

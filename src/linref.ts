@@ -92,8 +92,6 @@ export async function batch_requests(
             {
                 method: "POST",
                 body: request_body,
-                signal: AbortSignal.timeout(20_000)
-
             }
         );
     }catch(e){
