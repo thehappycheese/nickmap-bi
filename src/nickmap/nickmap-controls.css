@@ -13,17 +13,27 @@
     grid-template-rows             : auto 1fr;
     color                          : seashell;
     overflow                       : hidden;
-    outline                        : 1px solid #555;
+    /* outline                        : 1px solid #555; */
     pointer-events:all;
+    padding:0.2em;
+}
+
+.nickmap-controls-collapse-button{
+    border-radius: 0.2em;
+    text-align: center;
+    cursor: pointer;
+    min-width: 2.5em;
+}
+.nickmap-controls-collapse-button:hover{
+    background-color: rgba(255,255,255,0.8);
+    color:black;
 }
 
 .nickmap-controls-collapsible-body{
-    border-top                     : 1px solid #555;
-    padding                        : 0.3em;
     overflow-x                     : hidden;
     overflow-y                     : auto;
-    margin-bottom                  : 0.2em;
-    margin-right                   : 0.2em;
+    margin-bottom                  : 0.3em;
+    margin-right                   : 0.3em;
 }
 
 .nickmap-controls-collapsible-body::-webkit-scrollbar {
@@ -121,18 +131,15 @@
     padding-left                   : 2em;
 }
 
-.nickmap-controls-container-title{
-    padding                        : 0.3em;
-    line-height                    : 1em;
-    background-color               : #222;
-}
 
 
 .nickmap-controls-other-map-button-container{
+    line-height                    : 1.5em;
+}
+.nickmap-controls-other-map-grid{
     display                        : grid;
     grid-template-columns          : auto 1fr 1fr;
     gap                            : 0.6em;
-    line-height                    : 1em;
 }
 
 .nickmap-controls-open-in-google-button{

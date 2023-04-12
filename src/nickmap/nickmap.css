@@ -22,12 +22,12 @@
 
 
 .nickmap-status-version-display{
-    font-size: 12px;
+    font-size: 10px;
     position:absolute;
     pointer-events: none;
-    bottom:8px;
-    right:8px;
-    left:8px;
+    bottom:0.3em;
+    right :0.3em;
+    left  :0.3em;
     z-index: 9999;
     display:grid;
     grid-template-columns: 1fr auto auto auto;
@@ -73,4 +73,11 @@
 
 .nickmap-status-text-error{
     color: red;
+}
+
+.ol-scale-line {
+    right: 0.3em;
+    top:0.3em;
+    bottom:unset;
+    left:unset;
 }

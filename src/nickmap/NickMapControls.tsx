@@ -57,17 +57,23 @@ export function NickMapControls (props:NickMapControlsComponentProps){
     return <div className="nickmap-controls">
         
         { (hidden)?
-            <div className="nickmap-controls-container-title">
-                <button onClick={()=>set_hidden(false)}>⏷</button>
+            <div className="nickmap-controls-other-map-button-container">
+                <div
+                    onClick={()=>set_hidden(false)}
+                    className="nickmap-controls-collapse-button"
+                    title="Click to Expand Controls"
+                    role="button"
+                >⏷</div>
             </div>
             : 
             <div className="nickmap-controls-collapsible-body">
-                <div className="nickmap-controls-other-map-button-container">
-                    <button
+                <div className="nickmap-controls-other-map-button-container nickmap-controls-other-map-grid">
+                    <div
                         onClick={()=>set_hidden(true)}
-                    >
-                        ⏶
-                    </button>
+                        className="nickmap-controls-collapse-button"
+                        title="Click to Collapse Controls. You can set the default state in the visual settings."
+                        role="button"
+                    >⏶</div>
                     <button
                         className="nickmap-controls-open-in-google-button"
                         title="Open current view in google maps"
