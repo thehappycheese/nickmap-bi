@@ -1,4 +1,6 @@
 import powerbi from "powerbi-visuals-api";
+import { valueFormatter } from "powerbi-visuals-utils-formattingutils";
+import { IValueFormatter } from "powerbi-visuals-utils-formattingutils/lib/src/valueFormatter";
 
 /**
  * Unless restricted by capabilities.json,
@@ -73,6 +75,13 @@ export function transform_data_view(
 }[]{
     let result = [];
     let role_columns = dataview_table_role_column_indices__all(data_view_table);
+
+    // Create value formatters for each tooltip column
+    let tooltipFormatters: IValueFormatter[] = role_columns["tooltips"]?.map(tooltip_column_index => {
+        let column = data_view_table.columns[tooltip_column_index];
+        return valueFormatter.create({ format: column.format });
+    }) ?? [];
+
     for (let row_index=0;row_index<data_view_table.rows.length;row_index++){
         // TODO: Build data integrity report
         // if(role_columns["road_number"]===undefined || role_columns["road_number"][0]===undefined || !(typeof role_columns["road_number"][0] === "string")){
@@ -91,9 +100,9 @@ export function transform_data_view(
             colour       :            row[role_columns["colour"     ]?.[0]] as any ?? default_line_color,
             line_width   : default_line_width,
             selection_id : host.createSelectionIdBuilder().withTable(data_view_table, row_index).createSelectionId(),
-            tooltips     : role_columns["tooltips"  ]?.map(tooltip_column_index=>({
+            tooltips     : role_columns["tooltips"  ]?.map((tooltip_column_index, index)=>({
                 column_name: data_view_table.columns[tooltip_column_index].displayName,
-                value:row[tooltip_column_index]
+                value:tooltipFormatters[index].format(row[tooltip_column_index])
             })) ?? []
         });
     }
