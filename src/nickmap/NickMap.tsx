@@ -1,4 +1,4 @@
-import { Map as OpenLayersMap } from 'ol';
+import { Feature, MapBrowserEvent, Map as OpenLayersMap } from 'ol';
 import Collection from 'ol/Collection';
 import { Rotate, ScaleLine } from 'ol/control';
 import { platformModifierKeyOnly } from 'ol/events/condition';
@@ -36,9 +36,9 @@ import { Fetch_Data_State } from './Fetch_Data_Sate';
 import { ITooltipServiceWrapper } from 'powerbi-visuals-utils-tooltiputils';
 import { feature_tooltip_items } from '../dataview_table_helpers';
 import { road_network_styles } from './layers/road_network';
-import { active } from 'd3';
 import { Extent } from 'ol/extent';
 import { Coordinate } from 'ol/coordinate';
+import { Fill } from 'ol/style';
 
 type NickMapProps = {
     
@@ -158,6 +158,8 @@ export function NickMap(props:NickMapProps){
         drag_interaction_ref.current.setActive(props.allow_drag_box_selection)
     },[props.allow_drag_box_selection])
 
+    
+
     // ==================
     // SELECT INTERACTION
     // ==================
@@ -186,34 +188,13 @@ export function NickMap(props:NickMapProps){
             //       selections we need to refer to the feature collection:
             let selected_items = select_interaction_ref.current.getFeatures().getArray()
             props.selection_manager
-                .clear()
-                .then(
-                    ()=>{
-                        props.tooltip_service.hide({immediately:true, isTouchEvent:false});
-                        update_status_selection_count_helper(selected_items.length, select_status_display_ref)
-                        if(selected_items.length>0){
-                            return props.selection_manager.select(selected_items.map(item=>item.get("selection_id")))
-                        }
-                    }
-                ).then((selection_ids)=>{
-                    let selected_item_tooltips:feature_tooltip_items[] = selected_items.map(item=>item.get("tooltips"))
-                    if(selected_item_tooltips.length===1 && selected_item_tooltips[0].length > 0){
-                        props.tooltip_service.show({
-                            coordinates:[
-                                e.mapBrowserEvent.originalEvent.clientX,
-                                e.mapBrowserEvent.originalEvent.clientY
-                            ],
-                            dataItems:selected_item_tooltips[0].map(item=>({
-                                displayName: item.column_name,
-                                value: String(item.value),
-                                color: "",
-                                header: ""
-                            })),
-                            isTouchEvent:e.mapBrowserEvent.originalEvent?.pointerType==="touch",
-                            identities:selection_ids
-                        })
-                    }
-                });
+            .clear()
+            .then(()=>{
+                update_status_selection_count_helper(selected_items.length, select_status_display_ref)
+                if(selected_items.length>0){
+                    return props.selection_manager.select(selected_items.map(item=>item.get("selection_id")))
+                }
+            })
         });
         return select_interaction
     })
@@ -281,6 +262,49 @@ export function NickMap(props:NickMapProps){
         map.on("movestart",event=>{
             props.tooltip_service.hide({immediately:true, isTouchEvent:false});
         })
+        // ========== HOVER TOOLTIP ============
+        const show_tooltip = (selected_item:Feature, clientX:number, clientY:number, is_touch:boolean) => {
+            let tooltips:feature_tooltip_items = selected_item.get("tooltips")
+            let selection_id:feature_tooltip_items = selected_item.get("selection_id")
+            props.tooltip_service.show({
+                coordinates:[
+                    clientX,
+                    clientY
+                ],
+                dataItems:tooltips.map(item=>({
+                    displayName: item.column_name,
+                    value: String(item.value),
+                    color: "",
+                    header: ""
+                })),
+                isTouchEvent:is_touch,
+                identities:selection_id
+            })
+        };
+
+        let pointer_hover_feature;
+        map.on('pointermove', (event:MapBrowserEvent<any>) => {
+            let found = false;
+            map.forEachFeatureAtPixel(event.pixel, (feature, layer) => {
+                if(layer===vector_layer_data_ref.current){
+                    found = true;
+                    if(pointer_hover_feature!==feature){
+                        pointer_hover_feature = feature;
+                        show_tooltip(
+                            feature as any,
+                            event.originalEvent?.clientX ?? 0,
+                            event.originalEvent?.clientY ?? 0,
+                            event.originalEvent?.pointerType==="touch" ?? false
+                        )
+                    }
+                    return;
+                }
+            });
+            if(!found){
+                pointer_hover_feature = undefined;
+                props.tooltip_service.hide({immediately:true, isTouchEvent:false});
+            }
+        });
         return map
     });
     useEffect(()=>{
