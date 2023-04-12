@@ -16,7 +16,7 @@ import * as ReactDOM from "react-dom";
 import { ControlsMode, NickMapBIFormattingSettings } from "./settings";
 
 import {dataview_table_role_column_indices__all, transform_data_view} from './dataview_table_helpers'
-import {batch_requests} from './linref'
+import { batch_requests, BatchRequestAbortedError } from './linref'
 import { zip_arrays} from './util/itertools'
 import { NickmapFeatureCollection } from "./NickmapFeatures";
 import { Fetch_Data_State } from "./nickmap/Fetch_Data_Sate";
@@ -170,8 +170,12 @@ export class Visual implements IVisual {
             }
         ).catch(
             failure=>{
-                console.log(failure)
-                this.feature_loading_state = {type:"FAILED", reason:failure.message}
+                if(failure instanceof BatchRequestAbortedError){
+                    this.feature_loading_state = {type:"PENDING"}
+                }else{
+                    console.log(failure)
+                    this.feature_loading_state = {type:"FAILED", reason:failure.message}
+                }
             }
         ).finally(()=>this.react_render_call())
     }

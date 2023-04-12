@@ -42,6 +42,7 @@ interface Response_Feature_Type {
 
 export class BatchRequestBinaryEncodingError extends Error{}
 export class BatchRequestFetchError extends Error{}
+export class BatchRequestAbortedError extends Error{}
 export class BatchRequestResponseError extends Error{}
 export class BatchRequestJSONDeserializeError extends Error{}
 
@@ -87,7 +88,7 @@ export async function batch_requests(
     // Send the request to the server
     let response:Response;
     try{
-        response = await fetch(
+        response = await fetch_with_abort(
             "https://linref.thehappycheese.com/batch/", 
             {
                 method: "POST",
@@ -95,24 +96,20 @@ export async function batch_requests(
             }
         );
     }catch(e){
-        throw new BatchRequestFetchError(`BatchRequestFetchError(${e.message})`,{cause:e})
+        if(e instanceof DOMException && e.name==="AbortError"){
+            throw new BatchRequestAbortedError(`BatchRequestAbortedError`)
+        }else{
+            throw new BatchRequestFetchError(`BatchRequestFetchError(${e.message})`,{cause:e})
+        }
     }
     if (!response.ok) {
         throw new BatchRequestResponseError(`BatchRequestResponseError(${response.status.toString()},${response.statusText})`,{cause:response})
-        // return {
-        //     type:"FeatureCollection",
-        //     features:new Array(request_feature_length).fill(null)
-        // }
     }
     let response_json:any;
     try{
         response_json = await response.json();
     }catch(e){
         throw new BatchRequestJSONDeserializeError(`BatchRequestJSONDeserializeError(${e.message.slice(0,20)})`,{cause:e})
-        // return {
-        //     type:"FeatureCollection",
-        //     features:new Array(request_feature_length).fill(null)
-        // };
     }
     
     // TODO: lift the next step so we can combine it with the tep where we append the feature properties?
@@ -136,4 +133,23 @@ export async function batch_requests(
         features
     }
     return result;
+}
+
+
+let fetch_with_abort_controller = null;
+async function fetch_with_abort(url:RequestInfo, parameters:RequestInit = {}) {
+  // Abort the previous fetch request if there is one still in flight
+  if (fetch_with_abort_controller) {
+    fetch_with_abort_controller.abort();
+  }
+
+  // Create a new AbortController for the current fetch request
+  fetch_with_abort_controller = new AbortController();
+
+  try {
+    return await fetch(url, {...parameters, signal: fetch_with_abort_controller.signal });
+  } finally {
+    // Reset the controller after a successful, aborted or failed fetch
+    fetch_with_abort_controller = null;
+  }
 }

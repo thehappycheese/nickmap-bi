@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- Fixed issue [#43](https://github.com/thehappycheese/nickmap-bi/issues/43); simultaneous requests are prevented using an abort signal to prevent out-of-order response processing
 - Goto will now work with non capitalised road numbers
 - Possibly fixed minor compatibility issue by removing unnecessary use of `AbortSignal.timeout()`
 - Goto will now work on any submit event including enter, but there are
