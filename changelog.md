@@ -4,6 +4,7 @@
 
 ### Changed
 - [#9](https://github.com/thehappycheese/nickmap-bi/issues/9) Tooltips now show on hover.
+- Minor improvements to controls style. Moved scale bar to top right.
 
 ### Fixed
 
