@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [4.2.0] - 2023-04-12
 
 ### Changed
 - [#9](https://github.com/thehappycheese/nickmap-bi/issues/9) Tooltips now show on hover.
