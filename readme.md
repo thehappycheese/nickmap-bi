@@ -1,23 +1,48 @@
 # NickMapBI <!-- omit in toc -->
 
-A custom PowerBI visual for mapping linear data on the Main Roads Western
-Australia Road Network.
-
 Link to releases: [Releases](https://github.com/thehappycheese/nickmap-bi/releases)
 
-See full change log: [Change Log](./changelog.md)
+Link to change log: [Change Log](./changelog.md)
 
-- [1. Required Data Format](#1-required-data-format)
-  - [1.1. Example Data Table](#11-example-data-table)
-  - [1.2. Column Details](#12-column-details)
-- [2. SLK Linear Referencing System](#2-slk-linear-referencing-system)
-- [3. Offset Direction](#3-offset-direction)
-- [4. Backend](#4-backend)
+- [1. Introduction](#1-introduction)
+  - [1.1. Installation](#11-installation)
+  - [1.2. Updating Existing Dashboards](#12-updating-existing-dashboards)
+- [2. Usage](#2-usage)
+  - [2.1. Required Data Format](#21-required-data-format)
+    - [2.1.1. Example Data Table](#211-example-data-table)
+    - [2.1.2. Column Details](#212-column-details)
+  - [2.2. SLK Linear Referencing System](#22-slk-linear-referencing-system)
+  - [2.3. Offset Direction](#23-offset-direction)
+- [3. Related Projects](#3-related-projects)
 
+## 1. Introduction
 
-## 1. Required Data Format
+A custom PowerBI visual for mapping linear data on the Main Roads Western
+Australia Road Network. Supports line segments with an SLK From & SLK To. Automatically generates map geometry (automates geocoding / linear referencing).
 
-### 1.1. Example Data Table
+![Screenshot](./readme_extras/v4.2.0-screenshot.png)
+
+### 1.1. Installation
+
+1. Please visit the
+   [Releases](https://github.com/thehappycheese/nickmap-bi/releases) page to
+   download the latest visual (At the time of writing the latest version is
+   named `nickmapbi82E1C4CFA7CF45C0BC3CD8771F27FDAF.4.2.0.pbiviz`)
+2. Please follow this guide to [Import a visual file from your local computer into Power BI](https://aus01.safelinks.protection.outlook.com/?url=https%3A%2F%2Flearn.microsoft.com%2Fen-us%2Fpower-bi%2Fdeveloper%2Fvisuals%2Fimport-visual%23import-a-visual-file-from-your-local-computer-into-power-bi&data=05%7C01%7CNicholas.ARCHER%40mainroads.wa.gov.au%7Ce7dad0af092c42c9894908db3fbdc0be%7Cced71ed676dd43d09acccf122b3bc423%7C0%7C0%7C638173856438541072%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=2%2FrjQ0eX8u2uM3X6jLIyriKPQjyomBllicjSBd%2BZkqs%3D&reserved=0).
+
+### 1.2. Updating Existing Dashboards
+
+To update any existing dashboards with a newer version of this visual, the
+process is exactly the same as installing it for the first time. PowerBI will
+prompt you to confirm, then it will replace all existing instances of the
+NickMap visual in the report with the new version. Each of your reports must be
+individually updated and republished this way.
+
+## 2. Usage
+
+### 2.1. Required Data Format
+
+#### 2.1.1. Example Data Table
 
 | Road Number | Carriageway | SLK From | SLK To | Offset (Metres) | Colour (CSS) | Tooltip (1) | Tooltip (2)          | ... |
 | ----------- | ----------- | -------- | ------ | --------------- | ------------ | ----------- | -------------------- | --- |
@@ -25,7 +50,7 @@ See full change log: [Change Log](./changelog.md)
 | H001        | LS          | 1.20     | 1.3    | 0.0             | "yellow"     | "medium"    | "Some other comment" | ... |
 | H001        | RS          | 0.00     | 1.2    | `0.0            | "#FF0000"    | "high"      | "Some other comment" | ... |
 
-### 1.2. Column Details
+#### 2.1.2. Column Details
 
 | Field Well            | Optional | Accepts Multiple Columns | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | --------------------- | :------: | :----------------------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -43,7 +68,7 @@ See full change log: [Change Log](./changelog.md)
 > visual is supposed to restrict the field-wells to accept only the correct
 > number of columns but currently it does not.
 
-## 2. SLK Linear Referencing System
+### 2.2. SLK Linear Referencing System
 
 SLK stands for "Straight Line Kilometres". It is a system of measurement for
 positions along a road. SLK is measured from the start of the road along the
@@ -63,7 +88,7 @@ centreline, with several important asterisks:
 > centreline without POE adjustments (may still have gaps though). This system
 > of measurement is not available though this PowerBI visual (yet).
 
-## 3. Offset Direction
+### 2.3. Offset Direction
 
 The "Left Hand Side" of a road means "the drivers left hand side when travelling
 in the direction of increasing SLK"
@@ -76,6 +101,6 @@ The Offset column in this visual takes either positive or negative values:
 - Positive values offset to the right hand side, and
 - Negative values offset to the left hand side
 
-## 4. Backend
+## 3. Related Projects
 
 This project relies on a related project https://github.com/thehappycheese/nicklinref_rust
