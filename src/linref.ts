@@ -89,7 +89,8 @@ export async function batch_requests(
     let response:Response;
     try{
         response = await fetch_with_abort(
-            "https://linref.thehappycheese.com/batch/", 
+            //"https://linref.thehappycheese.com/batch/", 
+            "https://nicklinref-alpine-caddy-mrwauedevnmbascr.australiaeast.azurecontainer.io/batch/", 
             {
                 method: "POST",
                 body: request_body,
