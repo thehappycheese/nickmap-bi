@@ -15,17 +15,58 @@ import { Options as VectorSourceConstructorOptions } from 'ol/source/Vector';
 import { bbox, tile } from 'ol/loadingstrategy';
 import { createXYZ } from 'ol/tilegrid';
 import urljoin from 'url-join';
+import { Extent } from 'ol/extent';
+import { Projection } from 'ol/proj';
 
-
+interface EsriJSONMZSpatial {
+    hasZ?:boolean
+    hasM?:boolean
+    spatialReference?:EsriJSONSpatialReference
+}
+type EsriJSONFieldType = "esriFieldTypeGlobalID" | "esriFieldTypeString" | "esriFieldTypeDate" | "esriFieldTypeOID";
+type EsriJSONGeometryType = "esriGeometryPoint" | "esriGeometryMultipoint" | "esriGeometryPolyline" | "esriGeometryPolygon" | "esriGeometryEnvelope";
+interface EsriJSONPolyline extends EsriJSONMZSpatial{
+    paths:number[][][]
+}
+type EsriJSONGeometry = EsriJSONPolyline;// | EsriJSONPoint | EsriJSONMultipoint | EsriJSONPolygon | EsriJSONEnvelope;
+interface EsriJSONFeature {
+    geometry:EsriJSONGeometry,
+    attributes:Record<string, null|string|number|boolean>
+}
+interface EsriJSONSpatialReference {
+    wkid?:number,
+    latestWkid?:number
+    wkt?:string
+}
+interface EsriJSONField {
+    name:string
+    type:EsriJSONFieldType
+}
+interface EsriJSONFeatureSet extends EsriJSONMZSpatial{
+    geometryType:EsriJSONGeometryType
+    fields:EsriJSONField[]
+    fieldAliases?:Record<string, string>[] // DEPRECATED
+    features:EsriJSONFeature[]
+    exceededTransferLimit?:boolean
+}
+interface EsriJSONFeatureLayerField {
+    name:string
+    alias:string
+    type:EsriJSONFieldType
+}
+interface EsriJSONFeatureLayer {
+    type:"Feature Layer",
+    fields:EsriJSONFeatureLayerField[]
+}
 
 export class esri_vector_source extends VectorSource {
 
 	static esri_json_format = new EsriJSON();
-	field_metas;
-	field_aliases;
-	true_meta_fields;
-	fixed_url_component;
-	fetch_args = {};
+	fields?:EsriJSONField[];
+	//field_aliases?:Record<string,string>; // DEPRECATED
+	//true_meta_fields?:EsriJSONFeatureLayerField[];
+	fixed_url_component:string;
+	fetch_args:RequestInit = {};
 
 
 	constructor({ service_url, layer_number, sql_filter, fetch_args = {}, url_params = {}, tile_size = 256, ...args }: {
@@ -51,8 +92,8 @@ export class esri_vector_source extends VectorSource {
 			f: "json",
 			returnGeometry: "true",
 			outFields: "*",
-			inSR: "102100",
-			outSR: "102100",
+			inSR: "102100", // aka 3857
+			outSR: "102100", // aka 3857
 			spatialRel: "esriSpatialRelIntersects",
 			geometryType: "esriGeometryEnvelope",
 			where: sql_filter,
@@ -60,10 +101,10 @@ export class esri_vector_source extends VectorSource {
 			orderByFields: "OBJECTID", // results are paged in some garbage random order without this
 		})
 		this.fixed_url_component = urljoin(service_url, layer_number.toString(), "query", "?" + params.toString());
-		this.get_layer_metadata(urljoin(service_url, layer_number.toString(), "?f=json"));
+		//this.get_layer_metadata(urljoin(service_url, layer_number.toString(), "?f=json"));
 	}
 
-	esri_vector_loader(arg_extent, resolution, projection) {
+	esri_vector_loader(arg_extent:Extent, resolution:number, projection:Projection) {
 		var url =
 			this.fixed_url_component + '&' + new URLSearchParams({
 				geometry: JSON.stringify({
@@ -76,29 +117,38 @@ export class esri_vector_source extends VectorSource {
 		this.esri_vector_load_part(url, projection, 0);
 	}
 
-	transfrom_feature_properties(feature_properties: { [key: string]: any }) {
-		let new_attributes = {};
-		for (let [key, value] of Object.entries(feature_properties)) {
-			//let value = feature_properties[key];
-			if (key === "geometry") continue;
-			if (value === null) continue;
-			let column_meta = this?.true_meta_fields?.find(cd => cd.name == key) ?? this?.field_metas?.find(cd => cd.name == key) ?? {};
-			let column_alias = column_meta?.alias ?? this?.field_aliases?.[key] ?? key;
-			if (column_meta.type === "esriFieldTypeOID" || column_meta.name === "GEOLOC.STLength()") {
-				continue
-			}
-			if (column_meta.type === "esriFieldTypeDate") {
-				value = new Date(value).toISOString().split("T")[0];
-			}
-			if (column_meta?.domain?.type === "codedValue") {
-				value = column_meta.domain.codedValues.find(cv => cv.code == value).name;
-			}
-			new_attributes[column_alias] = value;
-		}
-		return new_attributes;
-	}
+	// transform_feature_properties(feature_properties: { [key: string]: any }) {
+	// 	let new_attributes = {};
+	// 	for (let [key, value] of Object.entries(feature_properties)) {
+	// 		//let value = feature_properties[key];
+	// 		if (key === "geometry") continue;
+	// 		if (value === null) continue;
+    //         let column_meta_from_true_meta_fields = this?.true_meta_fields?.find(cd => cd.name == key);
+    //         let column_meta_from_fields = this?.fields?.find(cd => cd.name == key);
+    //         let column_alias:string = key;
+    //         let column_type:string = "";
+    //         if (column_meta_from_true_meta_fields !== undefined) {
+    //             column_alias = column_meta_from_true_meta_fields.alias;
+    //             column_type = column_meta_from_true_meta_fields.type;
+    //         }else if(column_meta_from_fields !== undefined){
+    //             column_alias = column_meta_from_fields.name;
+    //             column_type = column_meta_from_fields.type;
+    //         }
+	// 		if (column_type === "esriFieldTypeOID" || column_alias === "GEOLOC.STLength()") {
+	// 			continue
+	// 		}
+	// 		if (column_type === "esriFieldTypeDate") {
+	// 			value = new Date(value).toISOString().split("T")[0];
+	// 		}
+	// 		if (column_meta?.domain?.type === "codedValue") {
+	// 			value = column_meta.domain.codedValues.find(cv => cv.code == value).name;
+	// 		}
+	// 		new_attributes[column_alias] = value;
+	// 	}
+	// 	return new_attributes;
+	// }
 
-	esri_vector_load_part(url, projection, offset) {
+	esri_vector_load_part(url:string, projection:Projection, offset:number) {
 		let complete_url = url + "&resultOffset=" + offset
 		fetch(complete_url,
 			{
@@ -113,8 +163,8 @@ export class esri_vector_source extends VectorSource {
 			} else {
 				return resp.json()
 			}
-		}).then(json => {
-			if (json.error) {
+		}).then((json:EsriJSONFeatureSet | {error:string}) => {
+			if ("error" in json) {
 				console.log("query failed!", complete_url, json.error)
 				return;
 			}
@@ -124,15 +174,15 @@ export class esri_vector_source extends VectorSource {
 			}
 
 			if (json?.features?.length > 0) {
-				if (this.field_aliases === undefined) {
-					this.field_aliases = json.field_aliases;
-				}
-				if (this.field_metas === undefined) {
-					this.field_metas = json.fields;
+				// if (this.field_aliases === undefined) {
+				// 	this.field_aliases = json.fieldAliases; // DEPRECATED
+				// }
+				if (this.fields === undefined) {
+					this.fields = json.fields;
 				}
 				let features = esri_vector_source.esri_json_format.readFeatures(json, { featureProjection: projection });
 				features.forEach((item => {
-					item.set("get_nice_properties", () => this.transfrom_feature_properties(item.getProperties()));
+					//item.set("get_nice_properties", () => this.transform_feature_properties(item.getProperties()));
 					item.setId(item.getProperties()["OBJECTID"])
 				}))
 				this.addFeatures(features);
@@ -142,20 +192,22 @@ export class esri_vector_source extends VectorSource {
 		});
 	}
 
-	get_layer_metadata(meta_url) {
-		fetch(
-			meta_url,
-			{ method: "GET", mode: 'cors', ...this.fetch_args }
-		)
-		.then(response=>{
-			if (!response.ok) {
-				console.log("Failed to fetch.")
-				return
-			}else{
-				return response.json()
-			}
-		})
-		.then(json=>this.true_meta_fields = json.fields)
-		.catch(err=>console.log("unable to retrieve layer metadata;", err))
-	}
+	// get_layer_metadata(meta_url:string) {
+	// 	fetch(
+	// 		meta_url,
+	// 		{ method: "GET", mode: 'cors', ...this.fetch_args }
+	// 	)
+	// 	.then(response=>{
+	// 		if (!response.ok) {
+	// 			console.log("Failed to fetch.")
+	// 			return
+	// 		}else{
+	// 			return response.json()
+	// 		}
+	// 	})
+	// 	.then(json=>{
+    //         this.true_meta_fields = json.fields
+    //     })
+	// 	.catch(err=>console.log("unable to retrieve layer metadata;", err))
+	// }
 }

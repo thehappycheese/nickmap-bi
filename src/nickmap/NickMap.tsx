@@ -60,9 +60,9 @@ type NickMapProps = {
     layer_road_network_state_colour:string
     layer_road_network_psp_colour:string
 
-    layer_raster_brightness:number;
-    layer_raster_contrast:number;
-    layer_raster_saturation:number;
+    layer_raster_brightness:number
+    layer_raster_contrast:number
+    layer_raster_saturation:number
 
     auto_zoom_initial:boolean
     controls_size:number
@@ -84,7 +84,9 @@ type NickMapProps = {
     selection_manager:powerbi.extensibility.ISelectionManager
     
     tooltip_service:powerbi.extensibility.ITooltipService
-    tooltip_service_wrapper: ITooltipServiceWrapper,
+    tooltip_service_wrapper: ITooltipServiceWrapper
+
+    colour_palette_service:powerbi.extensibility.IColorPalette
 
 }
 

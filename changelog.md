@@ -1,6 +1,9 @@
 # Changelog
 
-## [4.3.0] - UNRELEASED - 2023-06-22
+## [4.2.3] - UNRELEASED - 2023-06-22
+
+
+## [4.2.2] - UNRELEASED - 2023-06-22
 
 - added `x-request-id` support when available. This will prevent processing out
   of order responses.
