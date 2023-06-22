@@ -149,21 +149,21 @@ const controls_mode_enum_options:ControlsMode[] = [
     {"displayName": "Expanded",  "value": "Expanded" }
 ]
 
-class MapBehaviourSettings extends formattingSettings.Card {
-    name = "map_behaviour";
-    displayName = "Map Behaviour";
+class MapBehaviorSettings extends formattingSettings.Card {
+    name = "map_behavior";
+    displayName = "Map Behavior";
 
     auto_zoom = new formattingSettings.ToggleSwitch({
         name        : "auto_zoom",
         displayName : "Auto Zoom (startup)",
-        description : "Controls the default behaviour when the report is first opened; Auto zoom to the extent of loaded features when slicers change.",
+        description : "Controls the default behavior when the report is first opened; Auto zoom to the extent of loaded features when slicers change.",
         value       : true,
     })
 
     controls_mode = new formattingSettings.ItemDropdown({
         name        : "controls_mode",
         displayName : "Controls (startup)",
-        value       : {value:"Expanded", displayName:"Expanded"},
+        value       : {value:"Collapsed", displayName:"Collapsed"},
         items       : controls_mode_enum_options
     })
 
@@ -182,6 +182,30 @@ class MapBehaviourSettings extends formattingSettings.Card {
         this.auto_zoom,
         this.controls_mode,
         this.controls_size
+    ]
+}
+
+class MapStatusBarSettings extends formattingSettings.Card {
+    name = "map_statusbar";
+    displayName = "Status Bar";
+
+
+    show_non_mappable_rows = new formattingSettings.ToggleSwitch({
+        name        : "show_non_mappable_rows",
+        displayName : "Show Non Mappable Rows",
+        description : "Show a warning message when some rows could not be mapped.",
+        value       : true,
+    });
+    show_result_count = new formattingSettings.ToggleSwitch({
+        name        : "show_result_count",
+        displayName : "Show Result Count",
+        description : "Show or hide the count of successfully mapped rows.",
+        value       : true,
+    });
+
+    slices = [
+        this.show_non_mappable_rows,
+        this.show_result_count
     ]
 }
 
@@ -225,13 +249,15 @@ export class NickMapBIFormattingSettings extends formattingSettings.Model {
     line_format_settings = new LineFormatSettings();
     road_network_settings = new RoadNetworkSettings();
     map_background_settings = new MapBackgroundSettings();
-    map_behavior_settings = new MapBehaviourSettings();
+    map_behavior_settings = new MapBehaviorSettings();
+    map_status_bar_settings = new MapStatusBarSettings();
     advanced_settings = new AdvancedSettings();
     cards = [
         this.line_format_settings,
         this.road_network_settings,
         this.map_background_settings,
         this.map_behavior_settings,
+        this.map_status_bar_settings,
         this.advanced_settings
     ]
 }

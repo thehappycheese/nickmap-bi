@@ -87,7 +87,7 @@
                 "osm_saturation"       :{"type": {"numeric":true}}
             }
         },
-        "map_behaviour": {
+        "map_behavior": {
             "properties": {
                 "auto_zoom":{"type": {"bool":true}},
                 "controls_size":{"type": {"numeric":true}},
@@ -96,6 +96,12 @@
                     {"displayName": "Collapsed", "value": "Collapsed"},
                     {"displayName": "Expanded",  "value": "Expanded"}
                 ]}}
+            }
+        },
+        "map_statusbar": {
+            "properties": {
+                "show_non_mappable_rows":{"type": {"bool":true}},
+                "show_result_count":{"type": {"bool":true}}
             }
         },
         "advanced_settings":{

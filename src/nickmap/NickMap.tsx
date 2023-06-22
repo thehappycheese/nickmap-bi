@@ -68,12 +68,17 @@ type NickMapProps = {
     controls_size:number
     controls_mode:"Collapsed"|"Expanded"|"Disabled"
 
+    show_non_mappable_rows:boolean
+    show_result_count:boolean
+
     allow_drag_box_selection:boolean
 
     feature_collection:NickmapFeatureCollection
     feature_collection_request_count:number
     feature_loading_state:Fetch_Data_State
     non_mappable_rows:NonMappableRow[]
+
+
 
 
     selection_manager:powerbi.extensibility.ISelectionManager
@@ -503,7 +508,7 @@ export function NickMap(props:NickMapProps){
                 <div>
                     {/* Grid Placeholder */}
                 </div>
-                <div className="nickmap-status-text">{
+                <div className="nickmap-status-box">{
                     build_status_display(props, ()=>set_show_explanation({
                         show:true,
                         explanation:<>
@@ -541,7 +546,7 @@ export function NickMap(props:NickMapProps){
                         </>
                     }))
                 }</div>
-                <div ref={select_status_display_ref} className="nickmap-status-selected">{`Selected: ${props.selection_manager.getSelectionIds().length}`}</div>
+                <div ref={select_status_display_ref} className="nickmap-status-box">{`Selected: ${props.selection_manager.getSelectionIds().length}`}</div>
                 <div className="nickmap-version-text">{props.version_node}</div>
             </div>
             <div 
@@ -557,33 +562,71 @@ export function NickMap(props:NickMapProps){
 
 
 
-function build_status_display(props:NickMapProps, show_why_cant_map_some_features:()=>void){
+function build_status_display(props:NickMapProps, show_why_cant_map_some_features:()=>void) : React.ReactNode{
     switch(props.feature_loading_state.type){
         case "SUCCESS":
-            return <>
-                <>{
-                    props.feature_collection_request_count===30_000 &&
-                    <span className="nickmap-status-text-error">Limited to 30,000 rows! </span>
-                }</>
-                <>{
-                    props.feature_collection_request_count !== props.feature_collection.features.length &&
-                    <span className='nickmap-status-text-warning'>
-                        {`${props.feature_collection_request_count-props.feature_collection.features.length} rows could not be mapped `}
-                        <a href="#" style={{pointerEvents:"all"}} onClick={()=>show_why_cant_map_some_features()}>why?</a>
-                    </span>
-                }</>
-                <>{` Showing ${props.feature_collection.features.length}`}</>
-            </>
+            let message_hit_max_result_count:React.ReactNode = null;
+            if(props.feature_collection_request_count===30_000){
+                if(props.show_result_count){
+                    message_hit_max_result_count = <span className="nickmap-status-text-error">Limited to 30,000 rows!</span>;
+                }else{
+                    message_hit_max_result_count = <span className="nickmap-status-text-error">Too many rows to map, please add more filters!</span>;
+                }
+            }
+
+            let message_count_missing_rows:React.ReactNode = null;
+            if(props.feature_collection_request_count !== props.feature_collection.features.length){
+                let count_missing_rows = props.feature_collection_request_count-props.feature_collection.features.length;
+                if (count_missing_rows<=0){
+                    // show no message, something went badly wrong
+                }else{
+                    if(props.show_non_mappable_rows){
+                        message_count_missing_rows = <span className='nickmap-status-text-warning'>
+                            <a href="#" style={{pointerEvents:"all"}} onClick={()=>show_why_cant_map_some_features()}>{
+                                `${count_missing_rows.toFixed(0)} rows could not be mapped`
+                            }</a>
+                        </span>;
+                    }
+                }
+            }
+
+            let message_count_rows_mapped_or_done:React.ReactNode = null;
+            if(props.feature_collection.features.length>0){
+                if(props.show_result_count){
+                    message_count_rows_mapped_or_done = `Showing ${props.feature_collection.features.length}`;
+                }else{
+                    message_count_rows_mapped_or_done = "Done";
+                }
+            }
+            return [
+                message_hit_max_result_count," ",
+                message_count_missing_rows," ",
+                message_count_rows_mapped_or_done,
+            ]
+
         case "FAILED":
-            return <span className='nickmap-status-text-error'>
-                <>{`FAILED TO LOAD ${props.feature_collection_request_count} ROWS`}</>
-                <br/>
-                <>{`(${props.feature_loading_state.reason})`}</>
-            </span>
+            if(props.show_result_count){
+                return <span className='nickmap-status-text-error'>
+                    {`Failed to load ${props.feature_collection_request_count} rows`}
+                    <br/>{`(${props.feature_loading_state.reason})`}
+                </span>
+            }else{
+                return <span className='nickmap-status-text-error'>
+                {`Failed to load results`}
+                <br/>{`(${props.feature_loading_state.reason})`}
+                </span>
+            }
+
         case "IDLE":
-            return <>Starting up...</>
+            return "Starting up"
+
         case "PENDING":
-            return <>{`Loading ${props.feature_collection_request_count}`}</>
+            if(props.show_result_count){
+                return `Loading ${props.feature_collection_request_count}`
+            }else{
+                return `Loading...`
+            }
+
         case "MISSING INPUT":
             return <span className='nickmap-status-text-warning'>
                 <>Missing columns;</>

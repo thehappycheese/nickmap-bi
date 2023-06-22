@@ -196,7 +196,7 @@ export class Visual implements IVisual {
                                 tooltips:input_row.tooltips
                             };
                             if(feature===null || feature===undefined){
-                                non_mappable_row.reason = "Invalid road or cwy";
+                                non_mappable_row.reason = "invalid road or cwy";
                             }else if(feature?.geometry?.coordinates && feature?.geometry?.coordinates.length === 0){
                                 if(input_row.slk_from === input_row.slk_to){
                                     non_mappable_row.reason = "slk_from = slk_to";
@@ -234,14 +234,14 @@ export class Visual implements IVisual {
         
         let map_background_settings = this.formattingSettings.map_background_settings
         let road_network_settings   = this.formattingSettings.road_network_settings
-
         let map_behavior_settings = this.formattingSettings.map_behavior_settings
+        let map_status_bar_settings = this.formattingSettings.map_status_bar_settings;
         let advanced_settings      = this.formattingSettings.advanced_settings
         
         ReactDOM.render(
             <NickMap
                 host={this.host}
-                version_node                          = {<><span style={{color:"red"}}>v4.2.2-DEV NickMapBI</span></>}
+                version_node                          = {<>v4.2.2<br/>NickMapBI</>}
 
                 layer_arcgis_rest_url                 = {map_background_settings.url_tile_arcgis.value}
                 layer_arcgis_rest_show_initial        = {map_background_settings.url_tile_arcgis_show.value}
@@ -261,6 +261,9 @@ export class Visual implements IVisual {
                 auto_zoom_initial                     = {map_behavior_settings.auto_zoom.value}
                 controls_size                         = {map_behavior_settings.controls_size.value}
                 controls_mode                         = {(map_behavior_settings.controls_mode.value as ControlsMode).value}
+
+                show_non_mappable_rows                = {map_status_bar_settings.show_non_mappable_rows.value}
+                show_result_count                     = {map_status_bar_settings.show_result_count.value}
 
                 allow_drag_box_selection              = {advanced_settings.allow_drag_box_selection.value}
 

@@ -1,8 +1,29 @@
 # Changelog
 
+## [4.2.2] - UNRELEASED - 2023-06-22
+
+### Fixed
+
+- added `x-request-id` support when available. This will prevent processing out
+  of order responses.
+- no longer show blank tooltips when no columns in field well
+  [#49](https://github.com/thehappycheese/nickmap-bi/issues/49)
+
+### Changed
+
+- Better explanation for why rows cannot be mapped
+  [#28](https://github.com/thehappycheese/nickmap-bi/issues/28)
+- added setting to hide the number of mapped features in the status bar
+- added setting to hide warnings about unmapped rows
+  [#50](https://github.com/thehappycheese/nickmap-bi/issues/50)
+- reduced size of status bar
+- top-left controls are now collapsed by default since this seems to be the
+  preference of most users.
+
 ## [4.2.0] - 2023-04-12
 
 ### Changed
+
 - [#9](https://github.com/thehappycheese/nickmap-bi/issues/9) Tooltips now show on hover.
 - Minor improvements to controls style. Moved scale bar to top right.
 
