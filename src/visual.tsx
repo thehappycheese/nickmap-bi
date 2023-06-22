@@ -241,7 +241,7 @@ export class Visual implements IVisual {
         ReactDOM.render(
             <NickMap
                 host={this.host}
-                version_text = '<span style="color:red">v4.2.2-DEV</style> NickMapBI'
+                version_node                          = {<><span style={{color:"red"}}>v4.2.2-DEV NickMapBI</span></>}
 
                 layer_arcgis_rest_url                 = {map_background_settings.url_tile_arcgis.value}
                 layer_arcgis_rest_show_initial        = {map_background_settings.url_tile_arcgis_show.value}

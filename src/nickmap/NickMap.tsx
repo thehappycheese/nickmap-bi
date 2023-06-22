@@ -47,7 +47,7 @@ import { set } from 'ol/transform';
 type NickMapProps = {
     
     host:IVisualHost // good change to try context provider
-    version_text:string
+    version_node:React.ReactNode
 
     layer_arcgis_rest_url:string
     layer_arcgis_rest_show_initial:boolean
@@ -542,7 +542,7 @@ export function NickMap(props:NickMapProps){
                     }))
                 }</div>
                 <div ref={select_status_display_ref} className="nickmap-status-selected">{`Selected: ${props.selection_manager.getSelectionIds().length}`}</div>
-                <div className="nickmap-version-text" title={props.version_text}>{props.version_text}</div>
+                <div className="nickmap-version-text">{props.version_node}</div>
             </div>
             <div 
                 className='nickmap-modal-explanation'
