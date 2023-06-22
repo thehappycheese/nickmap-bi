@@ -59,6 +59,25 @@ export class BatchRequestRequestIDMismatchError extends Error { }
 
 let x_request_id_global_latest: number = 0;
 
+/**
+ * Transforms a given PowerBI DataViewTable into an array of objects suitable
+ * for georeferencing.
+ *
+ * This function iterates over the rows of the input DataViewTable, converting each row 
+ * into an object with properties for road number, start and end SLK, offset, CWY, colour,
+ * line width, selection_id, and tooltips. These objects can be used as input for the 
+ * batch_requests function, which georeferences these road segments into a FeatureCollection 
+ * suitable for display in OpenLayers.
+ *
+ * @param data_view_table - The DataViewTable from PowerBI that contains the input data.
+ * @param host - The PowerBI visual host, used for creating selection IDs.
+ * @param default_line_width - The default line width to use for road segments.
+ * @param default_line_color - The default line colour to use for road segments.
+ *
+ * @returns An array of objects representing road segments, suitable for input to the 
+ *          batch_requests function for georeferencing.
+ */
+
 export async function batch_requests(
     road_segments: {
         road_number: string,

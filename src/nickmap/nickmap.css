@@ -81,3 +81,20 @@
     bottom:unset;
     left:unset;
 }
+
+table.nickmap-non-mappable {
+    border: 1px solid grey;
+    border-collapse: collapse;
+    font-size: 80%;
+}
+table.nickmap-non-mappable th{
+    border-right: 1px solid grey;
+}
+table.nickmap-non-mappable th,
+table.nickmap-non-mappable td {
+    text-align: left;
+    padding: 0.1em 0.5em;
+}
+table.nickmap-non-mappable tr {
+    border: 1px solid grey;
+}

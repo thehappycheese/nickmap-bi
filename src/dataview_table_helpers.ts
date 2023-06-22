@@ -1,6 +1,7 @@
 import powerbi from "powerbi-visuals-api";
 import { valueFormatter } from "powerbi-visuals-utils-formattingutils";
 import { IValueFormatter } from "powerbi-visuals-utils-formattingutils/lib/src/valueFormatter";
+import { FeatureTooltipItem } from "./data_types/FeatureTooltipItems";
 
 /**
  * Unless restricted by capabilities.json,
@@ -44,11 +45,23 @@ export function dataview_table_role_column_indices__all(data_view_table:powerbi.
 }
 
 
-export type feature_tooltip_items = {
-    column_name:string,
-    value:powerbi.PrimitiveValue
-}[]
-
+/**
+ * Transforms a given PowerBI DataViewTable into an array of objects suitable for georeferencing.
+ *
+ * This function iterates over the rows of the input DataViewTable, converting each row 
+ * into an object with properties for road number, start and end SLK, offset, carriageway, colour,
+ * line width, selection_id, and tooltips. These objects can be used as input for the 
+ * batch_requests function, which georeferences these road segments into a FeatureCollection 
+ * suitable for display in OpenLayers.
+ *
+ * @param data_view_table - The DataViewTable from PowerBI that contains the input data.
+ * @param host - The PowerBI visual host, used for creating selection IDs.
+ * @param default_line_width - The default line width to use for road segments.
+ * @param default_line_color - The default line colour to use for road segments.
+ *
+ * @returns An array of objects representing road segments, suitable for input to the 
+ *          batch_requests function for georeferencing.
+ */
 export function transform_data_view(
     data_view_table:powerbi.DataViewTable,
     host:powerbi.extensibility.visual.IVisualHost,
@@ -63,7 +76,7 @@ export function transform_data_view(
     colour       : string,
     line_width   : number,
     selection_id : powerbi.visuals.ISelectionId
-    tooltips     : feature_tooltip_items
+    tooltips     : FeatureTooltipItem[]
 }[]{
     if (data_view_table.rows === undefined){
         return [];
@@ -78,14 +91,8 @@ export function transform_data_view(
     }) ?? [];
 
     for (let row_index=0;row_index<data_view_table.rows.length;row_index++){
-        // TODO: Build data integrity report
-        // if(role_columns["road_number"]===undefined || role_columns["road_number"][0]===undefined || !(typeof role_columns["road_number"][0] === "string")){
-        //     continue
-        // }
-        // if(role_columns["road_number"]===undefined || role_columns["road_number"][0]===undefined || !(typeof role_columns["road_number"][0] === "string")){
-        //     continue
-        // }
         let row = data_view_table.rows[row_index];
+
         result.push({
             road_number  :            row[role_columns["road_number"]?.[0]]?.toString() ?? "",
             slk_from     : parseFloat(row[role_columns["slk_from"   ]?.[0]] as any),

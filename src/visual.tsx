@@ -1,13 +1,13 @@
+import 'ol/ol.css';
 import powerbi from "powerbi-visuals-api";
 import { FormattingSettingsService } from "powerbi-visuals-utils-formattingmodel";
+import { createTooltipServiceWrapper, ITooltipServiceWrapper } from "powerbi-visuals-utils-tooltiputils";
 import "./../style/visual.less";
-import 'ol/ol.css';
-import {NickMap} from "./nickmap/NickMap";
+import { NickMap } from "./nickmap/NickMap";
 
 import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
 import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 import IVisual = powerbi.extensibility.visual.IVisual;
-import {createTooltipServiceWrapper, ITooltipServiceWrapper} from "powerbi-visuals-utils-tooltiputils";
 
 import * as React from "react";
 import * as ReactDOM from "react-dom";
@@ -15,18 +15,20 @@ import * as ReactDOM from "react-dom";
 
 import { ControlsMode, NickMapBIFormattingSettings } from "./settings";
 
-import {dataview_table_role_column_indices__all, transform_data_view} from './dataview_table_helpers'
-import { batch_requests, BatchRequestAbortedError, BatchRequestOutdatedAfterFetchError, BatchRequestRequestIDMismatchError } from './linref'
-import { zip_arrays} from './util/itertools'
-import { NickmapFeatureCollection } from "./NickmapFeatures";
+import { dataview_table_role_column_indices__all, transform_data_view } from './dataview_table_helpers';
+import { batch_requests, BatchRequestAbortedError, BatchRequestOutdatedAfterFetchError, BatchRequestRequestIDMismatchError } from './linref';
 import { Fetch_Data_State } from "./nickmap/Fetch_Data_Sate";
+import { NickmapFeatureCollection } from "./NickmapFeatures";
+import { zip_arrays } from './util/itertools';
+import { NonMappableRow } from "./data_types/NonMappableRow";
+
 
 export class Visual implements IVisual {
     private react_root: HTMLElement;
     private formattingSettings: NickMapBIFormattingSettings;
     private formattingSettingsService: FormattingSettingsService;
     private host: powerbi.extensibility.visual.IVisualHost;
-    private pending_settings_changes:{path:string,new_value:any}[];
+    private non_mappable_rows: NonMappableRow[] = [];
     private feature_collection: NickmapFeatureCollection;
     private features_requested_count: number = 0;
     private feature_loading_state:Fetch_Data_State = {type:"IDLE"};
@@ -38,7 +40,6 @@ export class Visual implements IVisual {
 
     constructor(options: VisualConstructorOptions) {
 
-        this.pending_settings_changes = []
         if (!document || !options.element){
             throw new Error("Visual constructed without DOM???")
         }
@@ -118,7 +119,7 @@ export class Visual implements IVisual {
         }
 
         // =====================================
-        // BUILD DATASTRUCTURE FOR BATCH REQUEST
+        // BUILD DATA STRUCTURE FOR BATCH REQUEST
         // =====================================
         
         let input_properties: ReturnType<typeof transform_data_view> = [];
@@ -160,36 +161,53 @@ export class Visual implements IVisual {
             this.formattingSettings.advanced_settings.offset_multiplier.value
         ).then(
             (returned_features)=>{
-                // let unmappable_rows:{
-                //     row:number,
-                //     selection_id:powerbi.visuals.ISelectionId,
-                //     reason:string
-                // } = []
+                let non_mappable_rows:NonMappableRow[] = []
                 let features_filtered_and_coloured:NickmapFeatureCollection = {
                     type     : "FeatureCollection",
                     features : []
                 }
-                for(let [data_row, feature] of zip_arrays(input_properties, returned_features.features)){
-                    // feature may be null or have zero-sized coordinates array:
-                    if (feature && feature?.geometry?.coordinates && feature?.geometry?.coordinates.length !== 0){
-                        features_filtered_and_coloured.features.push(
-                            {
-                                ...feature,
-                                id : data_row.selection_id.getKey(),
-                                properties:{
-                                    colour       : data_row.colour,
-                                    line_width   : data_row.line_width,
-                                    selection_id : data_row.selection_id,
-                                    tooltips     : data_row.tooltips,
+                
+                zip_arrays(input_properties, returned_features.features).forEach(
+                    ([input_row, feature], row_index)=>{
+                        if (feature && feature?.geometry?.coordinates && feature?.geometry?.coordinates.length !== 0){
+                            features_filtered_and_coloured.features.push(
+                                {
+                                    ...feature,
+                                    id : input_row.selection_id.getKey(),
+                                    properties:{
+                                        colour       : input_row.colour,
+                                        line_width   : input_row.line_width,
+                                        selection_id : input_row.selection_id,
+                                        tooltips     : input_row.tooltips,
+                                    }
                                 }
+                            )
+                        }else{
+                            let non_mappable_row:NonMappableRow = {
+                                row_number:row_index+1,
+                                selection_id:input_row.selection_id,
+                                reason:"unknown",
+                                query:{
+                                    road:input_row.road_number,
+                                    cwy:input_row.cwy,
+                                    slk_from:input_row.slk_from,
+                                    slk_to:input_row.slk_to,
+                                },
+                                tooltips:input_row.tooltips
+                            };
+                            if(feature===null || feature===undefined){
+                                non_mappable_row.reason = "Invalid road or cwy";
+                            }else if(feature?.geometry?.coordinates && feature?.geometry?.coordinates.length === 0){
+                                if(input_row.slk_from === input_row.slk_to){
+                                    non_mappable_row.reason = "slk_from = slk_to";
+                                }
+                                non_mappable_row.reason = "slk outside valid range(s)";
                             }
-                        )
-                    }else{
-                        if(feature===null || feature===undefined){
-
+                            non_mappable_rows.push(non_mappable_row);
                         }
                     }
-                }
+                );
+                this.non_mappable_rows = non_mappable_rows;
                 this.feature_loading_state = {type:"SUCCESS"}
                 this.feature_collection = features_filtered_and_coloured;
             }
@@ -217,13 +235,13 @@ export class Visual implements IVisual {
         let map_background_settings = this.formattingSettings.map_background_settings
         let road_network_settings   = this.formattingSettings.road_network_settings
 
-        let map_behaviour_settings = this.formattingSettings.map_behaviour_settings
+        let map_behavior_settings = this.formattingSettings.map_behavior_settings
         let advanced_settings      = this.formattingSettings.advanced_settings
         
         ReactDOM.render(
             <NickMap
                 host={this.host}
-                version_text = "v4.2.2 NickMapBI"
+                version_text = '<span style="color:red">v4.2.2-DEV</style> NickMapBI'
 
                 layer_arcgis_rest_url                 = {map_background_settings.url_tile_arcgis.value}
                 layer_arcgis_rest_show_initial        = {map_background_settings.url_tile_arcgis_show.value}
@@ -240,16 +258,16 @@ export class Visual implements IVisual {
                 layer_raster_contrast                 = {map_background_settings.osm_contrast.value}
                 layer_raster_saturation               = {map_background_settings.osm_saturation.value}
 
-                auto_zoom_initial                     = {map_behaviour_settings.auto_zoom.value}
-                controls_size                         = {map_behaviour_settings.controls_size.value}
-                controls_mode                         = {(map_behaviour_settings.controls_mode.value as ControlsMode).value}
+                auto_zoom_initial                     = {map_behavior_settings.auto_zoom.value}
+                controls_size                         = {map_behavior_settings.controls_size.value}
+                controls_mode                         = {(map_behavior_settings.controls_mode.value as ControlsMode).value}
 
                 allow_drag_box_selection              = {advanced_settings.allow_drag_box_selection.value}
 
                 feature_collection                    = {this.feature_collection}
                 feature_collection_request_count      = {this.features_requested_count}
                 feature_loading_state                 = {this.feature_loading_state}
-
+                non_mappable_rows                     = {this.non_mappable_rows}
                 
                 selection_manager                     = {this.selection_manager}
 

@@ -225,13 +225,13 @@ export class NickMapBIFormattingSettings extends formattingSettings.Model {
     line_format_settings = new LineFormatSettings();
     road_network_settings = new RoadNetworkSettings();
     map_background_settings = new MapBackgroundSettings();
-    map_behaviour_settings = new MapBehaviourSettings();
+    map_behavior_settings = new MapBehaviourSettings();
     advanced_settings = new AdvancedSettings();
     cards = [
         this.line_format_settings,
         this.road_network_settings,
         this.map_background_settings,
-        this.map_behaviour_settings,
+        this.map_behavior_settings,
         this.advanced_settings
     ]
 }

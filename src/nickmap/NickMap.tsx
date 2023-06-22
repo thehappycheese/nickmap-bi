@@ -34,13 +34,15 @@ import * as React from "react";
 import { NickmapFeatureCollection } from '../NickmapFeatures';
 import { Fetch_Data_State } from './Fetch_Data_Sate';
 import { ITooltipServiceWrapper } from 'powerbi-visuals-utils-tooltiputils';
-import { feature_tooltip_items } from '../dataview_table_helpers';
+import { FeatureTooltipItem } from "../data_types/FeatureTooltipItems";
 import { road_network_styles } from './layers/road_network';
 import { Extent } from 'ol/extent';
 import { Coordinate } from 'ol/coordinate';
 import { Fill } from 'ol/style';
 import { FeatureLike } from 'ol/Feature';
 import { Geometry } from 'ol/geom';
+import { NonMappableRow } from '../data_types/NonMappableRow';
+import { set } from 'ol/transform';
 
 type NickMapProps = {
     
@@ -71,12 +73,13 @@ type NickMapProps = {
     feature_collection:NickmapFeatureCollection
     feature_collection_request_count:number
     feature_loading_state:Fetch_Data_State
+    non_mappable_rows:NonMappableRow[]
 
 
     selection_manager:powerbi.extensibility.ISelectionManager
     
     tooltip_service:powerbi.extensibility.ITooltipService
-    tooltip_service_wrapper: ITooltipServiceWrapper
+    tooltip_service_wrapper: ITooltipServiceWrapper,
 
 }
 
@@ -267,22 +270,24 @@ export function NickMap(props:NickMapProps){
         })
         // ========== HOVER TOOLTIP ============
         const show_tooltip = (selected_item:Feature, clientX:number, clientY:number, is_touch:boolean) => {
-            let tooltips:feature_tooltip_items = selected_item.get("tooltips")
-            let selection_id:feature_tooltip_items = selected_item.get("selection_id")
-            props.tooltip_service.show({
-                coordinates:[
-                    clientX,
-                    clientY
-                ],
-                dataItems:tooltips.map(item=>({
-                    displayName: item.column_name,
-                    value: String(item.value),
-                    color: "",
-                    header: ""
-                })),
-                isTouchEvent:is_touch,
-                identities:selection_id
-            })
+            let tooltips:FeatureTooltipItem[] = selected_item.get("tooltips")
+            let selection_id:powerbi.extensibility.ISelectionId = selected_item.get("selection_id")
+            if(!(tooltips===undefined || tooltips.length===0)){
+                props.tooltip_service.show({
+                    coordinates:[
+                        clientX,
+                        clientY
+                    ],
+                    dataItems:tooltips.map(item=>({
+                        displayName: item.column_name,
+                        value: String(item.value),
+                        color: "",
+                        header: ""
+                    })),
+                    isTouchEvent:is_touch,
+                    identities:[selection_id]
+                })
+            }
         };
 
         let pointer_hover_feature:FeatureLike|undefined = undefined;
@@ -502,11 +507,37 @@ export function NickMap(props:NickMapProps){
                     build_status_display(props, ()=>set_show_explanation({
                         show:true,
                         explanation:<>
-                            Possibly Road Number is invalid, or the SLK From/To range is incorrect,
-                            or the SLK From/To range is in a Point of Equation.
-                            This visual relies on the version of the IRIS road network avalaible on the
-                            Main Roads open data portal; maybe that version does not have the road or SLK
-                            you are looking for.
+                            The following rows could not be mapped:
+                            <table className='nickmap-non-mappable'>
+                                <thead>
+                                    <th>row</th>
+                                    <th>reason</th>
+                                    <th>road</th>
+                                    <th>cwy</th>
+                                    <th>slk_from</th>
+                                    <th>slk_to</th>
+                                    <th colSpan={99}>tooltips</th>
+                                </thead>
+                                <tbody>
+                                    {props.non_mappable_rows.slice(0,10).map(item=><tr>{[
+                                        <td>{item.row_number}</td>,
+                                        <td>{item.reason}</td>,
+                                        <td>{item.query.road}</td>,
+                                        <td>{item.query.cwy}</td>,
+                                        <td>{item.query.slk_from.toFixed(3)}</td>,
+                                        <td>{item.query.slk_to.toFixed(3)}</td>,
+                                        ...item.tooltips.map(column=><td>{column.value.toString()}</td>)
+                                    ]}</tr>)}
+                                </tbody>
+                            </table>
+                            {props.non_mappable_rows.length > 10 && `... ${props.non_mappable_rows.length-10} other rows not shown`}
+                            <button
+                                title='Select the offending rows in all other visuals on this page'
+                                onClick={()=>{
+                                    set_show_explanation({show:false, explanation:<></>});
+                                    props.selection_manager.clear();
+                                    props.selection_manager.select(props.non_mappable_rows.map(item=>item.selection_id));
+                                }}>Highlight these rows in other visuals</button>
                         </>
                     }))
                 }</div>
