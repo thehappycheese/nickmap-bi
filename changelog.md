@@ -1,16 +1,12 @@
 # Changelog
 
-## [4.2.2] - UNRELEASED - 2023-06-22
-
-### Fixed
+## [4.3.0] - UNRELEASED - 2023-06-22
 
 - added `x-request-id` support when available. This will prevent processing out
   of order responses.
+  [#43](https://github.com/thehappycheese/nickmap-bi/issues/43)
 - no longer show blank tooltips when no columns in field well
   [#49](https://github.com/thehappycheese/nickmap-bi/issues/49)
-
-### Changed
-
 - Better explanation for why rows cannot be mapped
   [#28](https://github.com/thehappycheese/nickmap-bi/issues/28)
 - added setting to hide the number of mapped features in the status bar
