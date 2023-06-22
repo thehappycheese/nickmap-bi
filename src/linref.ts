@@ -33,31 +33,36 @@ function binary_encode_request(road: string, slk_from: number, slk_to: number, o
 }
 
 interface Response_Feature_Type {
-    type:"Feature",
-    geometry:{
-        type:"MultiLineString",
-        coordinates:[number, number][][]
+    type: "Feature",
+    geometry: {
+        type: "MultiLineString",
+        coordinates: [number, number][][]
     }
 }
 
-export class BatchRequestBinaryEncodingError extends Error{}
-export class BatchRequestFetchError extends Error{}
-export class BatchRequestAbortedError extends Error{}
-export class BatchRequestResponseError extends Error{}
-export class BatchRequestJSONDeserializeError extends Error{}
+export class BatchRequestBinaryEncodingError extends Error { }
+export class BatchRequestFetchError extends Error { }
+export class BatchRequestAbortedError extends Error { }
+export class BatchRequestResponseError extends Error { }
+export class BatchRequestJSONDeserializeError extends Error { }
+export class BatchRequestOutdatedBeforeFetchError extends Error { }
+export class BatchRequestOutdatedAfterFetchError extends Error { }
+export class BatchRequestRequestIDMismatchError extends Error { }
 
+
+let x_request_id_global_latest: number = 0;
 
 export async function batch_requests(
-    road_segments:{
+    road_segments: {
         road_number: string,
         slk_from: number,
         slk_to: number,
         offset?: number,
         cwy?: string
     }[],
-    offset_multiplier:number
+    offset_multiplier: number
 ): Promise<NickmapFeatureCollection_ServerResponse> {
-    if(road_segments.length===0){
+    if (road_segments.length === 0) {
         return {
             type: "FeatureCollection",
             features: []
@@ -66,14 +71,14 @@ export async function batch_requests(
     let request_body_parts: Uint8Array[] = [];
     let request_body_byte_length = 0;
     let request_feature_length = 0;
-    try{
-        for(let {road_number: road, slk_from, slk_to, offset=0, cwy="LRS"} of road_segments){
-            let request_bytes = binary_encode_request(road, slk_from, slk_to, offset*offset_multiplier, cwy);
-            request_body_byte_length+=request_bytes.byteLength;
+    try {
+        for (let { road_number: road, slk_from, slk_to, offset = 0, cwy = "LRS" } of road_segments) {
+            let request_bytes = binary_encode_request(road, slk_from, slk_to, offset * offset_multiplier, cwy);
+            request_body_byte_length += request_bytes.byteLength;
             request_body_parts.push(request_bytes);
-            request_feature_length+=1;
+            request_feature_length += 1;
         }
-    }catch(e){
+    } catch (e) {
         throw new BatchRequestBinaryEncodingError()
     }
     // Pack all queries into a single byte array:
@@ -86,49 +91,76 @@ export async function batch_requests(
     )
 
     // Send the request to the server
-    let response:Response;
-    try{
-        response = await fetch_with_abort(
-            //"https://linref.thehappycheese.com/batch/", 
-            "https://nicklinref-alpine-caddy-mrwauedevnmbascr.australiaeast.azurecontainer.io/batch/", 
+    let x_request_id_request: number = (new Date()).getTime()
+    if (x_request_id_request < x_request_id_global_latest) {
+        throw new BatchRequestOutdatedBeforeFetchError()
+    }
+    // set the latest request
+    x_request_id_global_latest = x_request_id_request;
+
+    let response: Response;
+    try {
+        let fetch_promise = fetch_with_abort(
+            //"https://linref.thehappycheese.com/batch/",
+            "https://nicklinref-dev-mrwauedevnmbascr.australiaeast.azurecontainer.io/batch/",
             {
                 method: "POST",
                 body: request_body,
+                headers: {
+                    "x-request-id": x_request_id_request.toFixed(0),
+                }
             }
         );
-    }catch(e){
-        if(e instanceof DOMException && e.name==="AbortError"){
+
+        response = await fetch_promise;
+    } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") {
             throw new BatchRequestAbortedError(`BatchRequestAbortedError`)
-        }else{
-            throw new BatchRequestFetchError(`BatchRequestFetchError(${e.message})`,{cause:e})
+        } else {
+            throw new BatchRequestFetchError(`BatchRequestFetchError(${e.message})`, { cause: e })
         }
     }
     if (!response.ok) {
-        throw new BatchRequestResponseError(`BatchRequestResponseError(${response.status.toString()},${response.statusText})`,{cause:response})
+        throw new BatchRequestResponseError(`BatchRequestResponseError(${response.status.toString()},${response.statusText})`, { cause: response })
     }
-    let response_json:any;
-    try{
+
+    // retrieve x-request-id header from response
+    let x_request_id_response: number | undefined = undefined;
+    if (response.headers.has("x-request-id")) {
+        x_request_id_response = parseInt(response.headers.get("x-request-id"));
+        if (x_request_id_response !== x_request_id_request) {
+            // This seems very unlikely, it would indicate a deeply concerning
+            // error in the server code, or a botched hack attempt
+            throw new BatchRequestRequestIDMismatchError(`BatchRequestRequestIDMismatchError`, { cause: response })
+        }
+        if (x_request_id_response < x_request_id_global_latest) {
+            throw new BatchRequestOutdatedAfterFetchError()
+        }
+    }
+
+
+    // decode response
+    let response_json: any;
+    try {
         response_json = await response.json();
-    }catch(e){
-        throw new BatchRequestJSONDeserializeError(`BatchRequestJSONDeserializeError(${e.message.slice(0,20)})`,{cause:e})
+    } catch (e) {
+        throw new BatchRequestJSONDeserializeError(`BatchRequestJSONDeserializeError(${e.message.slice(0, 20)})`, { cause: e })
     }
-    
+
     // TODO: lift the next step so we can combine it with the tep where we append the feature properties?
-    let features:Response_Feature_Type[] = [];
+    let features: Response_Feature_Type[] = [];
     for (let multi_line_string_coordinates of response_json) {
-        
         features.push(multi_line_string_coordinates ? {
             type: "Feature",
             geometry: {
                 type: "MultiLineString",
                 coordinates: multi_line_string_coordinates
             }
-        }: null);
-        
+        } : null);
     }
-    let result:{
-        type:"FeatureCollection",
-        features:Response_Feature_Type[]
+    let result: {
+        type: "FeatureCollection",
+        features: Response_Feature_Type[]
     } = {
         type: "FeatureCollection",
         features
@@ -138,19 +170,19 @@ export async function batch_requests(
 
 
 let fetch_with_abort_controller = null;
-async function fetch_with_abort(url:RequestInfo, parameters:RequestInit = {}) {
-  // Abort the previous fetch request if there is one still in flight
-  if (fetch_with_abort_controller) {
-    fetch_with_abort_controller.abort();
-  }
+async function fetch_with_abort(url: RequestInfo, parameters: RequestInit = {}) {
+    // Abort the previous fetch request if there is one still in flight
+    if (fetch_with_abort_controller) {
+        fetch_with_abort_controller.abort();
+    }
 
-  // Create a new AbortController for the current fetch request
-  fetch_with_abort_controller = new AbortController();
+    // Create a new AbortController for the current fetch request
+    fetch_with_abort_controller = new AbortController();
 
-  try {
-    return await fetch(url, {...parameters, signal: fetch_with_abort_controller.signal });
-  } finally {
-    // Reset the controller after a successful, aborted or failed fetch
-    fetch_with_abort_controller = null;
-  }
+    try {
+        return await fetch(url, { ...parameters, signal: fetch_with_abort_controller.signal });
+    } finally {
+        // Reset the controller after a successful, aborted or failed fetch
+        fetch_with_abort_controller = null;
+    }
 }
