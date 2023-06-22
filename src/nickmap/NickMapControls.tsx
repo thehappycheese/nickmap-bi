@@ -38,18 +38,20 @@ export function NickMapControls (props:NickMapControlsComponentProps){
     const [zoom_to_road, set_zoom_to_road] = React.useState<string>("")
     const [show_zoomto_fail_explanation, set_show_zoomto_fail_explanation] = React.useState(false);
     const [zoom_to_slk, set_zoom_to_slk] = React.useState<number>(0)
-    const zoom_to_road_input_ref = React.useRef<HTMLInputElement>()
+    const zoom_to_road_input_ref = React.useRef<HTMLInputElement>(null)
 
     const handleSubmit = React.useCallback(
-        (event) => {
-            console.log("Active Element", document.activeElement);
+        (event:any) => {
+            if(zoom_to_road_input_ref.current===null){
+                return;
+            }
             event.preventDefault();
             set_show_zoomto_fail_explanation(false);
             props.on_zoom_to_road_slk(
                 zoom_to_road_input_ref.current.value,
                 zoom_to_slk
             );
-            zoom_to_road_input_ref.current.reportValidity();
+            zoom_to_road_input_ref.current?.reportValidity();
         },
         [props.on_zoom_to_road_slk, set_show_zoomto_fail_explanation, zoom_to_slk]
     );

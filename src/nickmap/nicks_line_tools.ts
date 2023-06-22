@@ -15,7 +15,10 @@ export function linestring_measure(line_string:NickLineString):NickMeasuredLineS
 	}else{
 		let result:[Vector2, number][] = [];
 		let total_length = 0;
-		let b:Vector2 = line_string.at(-1);
+		let b:Vector2 | undefined = line_string.at(-1);
+        if (b === undefined) {
+            return [[], 0];
+        }
 		for (let i = 0; i < line_string.length - 1; i++) {
 			let a:Vector2 = line_string[i];
 			b = line_string[i + 1];
@@ -29,24 +32,24 @@ export function linestring_measure(line_string:NickLineString):NickMeasuredLineS
 	}
 }
 
-export function linestring_direction(measured_line_string:NickMeasuredLineString, normalised_distance_along:number) {
+export function linestring_direction(measured_line_string:NickMeasuredLineString, normalized_distance_along:number) {
 	// returns the direction (as a unit vector) of a linestring segment which contains the point
 	let [points, total_length] = measured_line_string;
-	let de_normalised_distance_along = total_length * normalised_distance_along;
+	let de_normalized_distance_along = total_length * normalized_distance_along;
 	let len_so_far = 0;
-	let ab_len;
-	let ab;
+	let ab_len=1;
+	let ab = new Vector2(1,0);
 	for (let i = 0; i < points.length - 1; i++) {
 		let a;
 		[a, ab_len] = points[i];
 		let [b, _] = points[i + 1];
 		ab = b.sub(a);
 		len_so_far += ab_len;
-		if (len_so_far >= de_normalised_distance_along) {
-			return ab.copy().scalar_divide(ab_len);
+		if (len_so_far >= de_normalized_distance_along) {
+			return ab.clone().div(ab_len);
 		}
 	}
-	return ab.copy().scalar_divide(ab_len);
+	return ab.clone().div(ab_len);
 }
 
 export function linestring_ticks(
@@ -55,8 +58,8 @@ export function linestring_ticks(
 	slk_to:number,
 	minor_interval_km:number,
 	major_interval_count:number,
-	x_px,
-	y_px,
+	x_px:number,
+	y_px:number,
 	decimal_figures:number
 	) {
 

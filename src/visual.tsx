@@ -38,9 +38,11 @@ export class Visual implements IVisual {
     private tooltip_service: powerbi.extensibility.ITooltipService;
     private tooltip_service_wrapper: ITooltipServiceWrapper;
 
-    constructor(options: VisualConstructorOptions) {
+    private colour_palette_service: powerbi.extensibility.IColorPalette;
 
-        if (!document || !options.element){
+    constructor(options?: VisualConstructorOptions) {
+        
+        if (!document || options===undefined || !options.element){
             throw new Error("Visual constructed without DOM???")
         }
         this.host = options.host;
@@ -51,6 +53,7 @@ export class Visual implements IVisual {
             options.host.tooltipService,
             options.element
         );
+        this.colour_palette_service = options.host.colorPalette;
         this.formattingSettingsService = new FormattingSettingsService();
         // attempt to set default settings?
         this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(NickMapBIFormattingSettings, []);
@@ -170,12 +173,13 @@ export class Visual implements IVisual {
                 zip_arrays(input_properties, returned_features.features).forEach(
                     ([input_row, feature], row_index)=>{
                         if (feature && feature?.geometry?.coordinates && feature?.geometry?.coordinates.length !== 0){
+                            let selection_key = input_row.selection_id.getKey();
                             features_filtered_and_coloured.features.push(
                                 {
                                     ...feature,
-                                    id : input_row.selection_id.getKey(),
+                                    id : selection_key,
                                     properties:{
-                                        colour       : input_row.colour,
+                                        colour       : input_row.colour,//this.colour_palette_service.getColor(input_row.colour).value,//input_row.colour,
                                         line_width   : input_row.line_width,
                                         selection_id : input_row.selection_id,
                                         tooltips     : input_row.tooltips,
@@ -277,6 +281,7 @@ export class Visual implements IVisual {
                 tooltip_service                       = {this.tooltip_service}
                 tooltip_service_wrapper               = {this.tooltip_service_wrapper}
 
+                colour_palette_service                 = {this.colour_palette_service}
             />,
             this.react_root
         )

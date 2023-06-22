@@ -1,7 +1,7 @@
 
-import Map from 'ol/Map';
+import OpenLayersMap from 'ol/Map';
 import { Style, Stroke, Text, Fill } from 'ol/style';
-import { RenderFunction } from 'ol/style/Style';
+import { RenderFunction, StyleFunction } from 'ol/style/Style';
 import { Vector as VectorLayer } from 'ol/layer';
 import { toContext } from 'ol/render'
 import LineString from 'ol/geom/LineString'
@@ -11,6 +11,8 @@ import {getVectorContext} from 'ol/render';
 
 import { linestring_measure, linestring_ticks } from '../nicks_line_tools';
 import Vector2 from '../Vector2';
+import { Feature } from 'ol';
+import { FeatureLike } from 'ol/Feature';
 
 // const NetworkTypeEnum = {
 // 	'Main Roads Controlled Path': 0,
@@ -21,7 +23,7 @@ import Vector2 from '../Vector2';
 // }
 
 
-export const road_network_styles = {
+export const road_network_styles:Record<string, Style> = {
 	'Main Roads Controlled Path': new Style({
 		stroke: new Stroke({
 			color: 'rgba(100, 40, 100)',
@@ -92,7 +94,7 @@ let state_road_only_vector_source = new esri_vector_source({
 ////////////////////////////////////////
 
 
-function state_road_vector_layer_style_function(feature, resolution) {
+let state_road_vector_layer_style_function:StyleFunction = (feature:FeatureLike, resolution:number) =>{
 	let result = road_network_styles[feature.get("NETWORK_TYPE")] ?? road_network_styles["DEFAULT"];
 	if (resolution < 0.8) {
 		let stl = road_name_text_style.clone();
@@ -138,7 +140,7 @@ let custom_render_tick_text = new Text({
 })
 
 // Cannot use pixel coordinates; we need real distances and un-simplified geometry.
-let custom_renderer_with_SLK_ticks:(map:Map)=>RenderFunction = (map:Map) => (_pixelCoordinates, state) => {
+let custom_renderer_with_SLK_ticks:(map:OpenLayersMap)=>RenderFunction = (map:OpenLayersMap) => (_pixelCoordinates, state) => {
 	// There are a lot of bugs when the pixel ratio is not 1
 	// (had issues several versions of open layers ago... maybe no problems now)
 	let pixel_ratio = window.devicePixelRatio ?? 1;
@@ -187,14 +189,14 @@ let custom_renderer_with_SLK_ticks:(map:Map)=>RenderFunction = (map:Map) => (_pi
 		//ticks = linestring_ticks(mls, slk_from, slk_to, 0.1, 10, canvas_size_x/pixle_ratio, canvas_size_y/pixle_ratio);
 		ticks = linestring_ticks(mls, slk_from, slk_to, 50, 1, canvas_size_x, canvas_size_y, decimal_figures);
 	}
-	let tickmarks = ticks.map(item => [
-		[
+	let tickmarks = ticks.map(item => ({
+		item:[
 			[item[0][0].x, item[0][0].y],
 			[item[0][1].x, item[0][1].y]
 		],
-		item[1],
-		item[2]
-	]);
+		label:item[1],
+		label_rotation:item[2]
+    }));
 	context.save();
 	var renderContext = toContext(context);
 	(renderContext as any).extent_ = [0, 0, canvas_size_x, canvas_size_y];  // manual ovveride extent calculation to fix problems when devicePixleRatio is not == 1
@@ -203,7 +205,7 @@ let custom_renderer_with_SLK_ticks:(map:Map)=>RenderFunction = (map:Map) => (_pi
 		road_network_styles[network_type].getStroke()
 	);
 	var geometry: LineString = state.geometry.clone() as LineString;
-	for (let [item, label, label_rotation] of tickmarks) {
+	for (let {item, label, label_rotation} of tickmarks) {
 		label_rotation += Math.PI / 2;
 		geometry.setCoordinates(item)
 		renderContext.drawGeometry(geometry);
@@ -234,7 +236,7 @@ export let layer_state_road = new VectorLayer({
  * @param map Due to an
  * @returns 
  */
-export let get_layer_state_road_ticks = map => new VectorLayer({
+export let get_layer_state_road_ticks = (map:OpenLayersMap) => new VectorLayer({
 	source: state_road_only_vector_source,
 	style: new Style({
 		renderer:custom_renderer_with_SLK_ticks(map)
