@@ -1,3 +1,5 @@
+"use strict";
+
 export interface NickmapFeatureCollection {
     type: "FeatureCollection";
     features: {

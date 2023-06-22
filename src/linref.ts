@@ -1,7 +1,8 @@
+import {is_in} from './util/is_in'
 import { NickmapFeatureCollection_ServerResponse } from "./NickmapFeatures";
 
 // =========== Helper functions: ===========
-let CWY_LOOKUP = {
+const CWY_LOOKUP = {
     L: 0b0000_0100,
     R: 0b0000_0001,
     S: 0b0000_0010,
@@ -9,10 +10,16 @@ let CWY_LOOKUP = {
     LS: 0b0000_0110,
     RS: 0b0000_0011,
     LRS: 0b0000_0111
-}
+} as const;
+
 function binary_encode_request(road: string, slk_from: number, slk_to: number, offset: number, cwy: string) {
-    let cwy_sorted = Array.from(cwy.toUpperCase()).sort().join("")
-    let cwy_encoded = (cwy_sorted in CWY_LOOKUP) ? CWY_LOOKUP[cwy_sorted] : CWY_LOOKUP["LRS"];
+    let cwy_sorted = Array.from(cwy.toUpperCase()).sort().join("");
+    let cwy_encoded: typeof CWY_LOOKUP[keyof typeof CWY_LOOKUP];
+    if (!is_in(cwy_sorted, CWY_LOOKUP)) {
+        cwy_encoded = CWY_LOOKUP["LRS"];
+    }else{
+        cwy_encoded = CWY_LOOKUP[cwy_sorted];
+    }
 
     let text_encoder = new TextEncoder();
     let road_bytes = text_encoder.encode(road);
@@ -93,7 +100,8 @@ export async function batch_requests(
     // Send the request to the server
     let x_request_id_request: number = (new Date()).getTime()
     if (x_request_id_request < x_request_id_global_latest) {
-        throw new BatchRequestOutdatedBeforeFetchError()
+        console.log("BatchRequestOutdatedBeforeFetchError")
+        throw new BatchRequestOutdatedBeforeFetchError("BatchRequestOutdatedBeforeFetchError")
     }
     // set the latest request
     x_request_id_global_latest = x_request_id_request;
@@ -116,8 +124,11 @@ export async function batch_requests(
     } catch (e) {
         if (e instanceof DOMException && e.name === "AbortError") {
             throw new BatchRequestAbortedError(`BatchRequestAbortedError`)
-        } else {
+        } else if (e instanceof Error) {
             throw new BatchRequestFetchError(`BatchRequestFetchError(${e.message})`, { cause: e })
+        }else{
+            console.log(e)
+            throw new BatchRequestFetchError(`BatchRequestFetchError(unknown)`, { cause: e })
         }
     }
     if (!response.ok) {
@@ -127,14 +138,20 @@ export async function batch_requests(
     // retrieve x-request-id header from response
     let x_request_id_response: number | undefined = undefined;
     if (response.headers.has("x-request-id")) {
-        x_request_id_response = parseInt(response.headers.get("x-request-id"));
-        if (x_request_id_response !== x_request_id_request) {
-            // This seems very unlikely, it would indicate a deeply concerning
-            // error in the server code, or a botched hack attempt
-            throw new BatchRequestRequestIDMismatchError(`BatchRequestRequestIDMismatchError`, { cause: response })
-        }
-        if (x_request_id_response < x_request_id_global_latest) {
-            throw new BatchRequestOutdatedAfterFetchError()
+        let header_value = response.headers.get("x-request-id");
+        if (header_value === null) {
+            // skip any checks
+        }else{
+            x_request_id_response = parseInt(header_value);
+            if (x_request_id_response !== x_request_id_request) {
+                // This seems very unlikely, it would indicate a deeply concerning
+                // error in the server code, or a botched hack attempt
+                throw new BatchRequestRequestIDMismatchError(`BatchRequestRequestIDMismatchError`, { cause: response })
+            }
+            if (x_request_id_response < x_request_id_global_latest) {
+                console.log("BatchRequestOutdatedAfterFetchError")
+                throw new BatchRequestOutdatedAfterFetchError("BatchRequestOutdatedAfterFetchError")
+            }
         }
     }
 
@@ -144,11 +161,16 @@ export async function batch_requests(
     try {
         response_json = await response.json();
     } catch (e) {
-        throw new BatchRequestJSONDeserializeError(`BatchRequestJSONDeserializeError(${e.message.slice(0, 20)})`, { cause: e })
+        if (e instanceof Error) {
+            throw new BatchRequestJSONDeserializeError(`BatchRequestJSONDeserializeError(${e.message})`, { cause: e })
+        }else{
+            console.log(e)
+            throw new BatchRequestJSONDeserializeError(`BatchRequestJSONDeserializeError(unknown)`, { cause: e })
+        }
     }
 
     // TODO: lift the next step so we can combine it with the tep where we append the feature properties?
-    let features: Response_Feature_Type[] = [];
+    let features: (Response_Feature_Type | null)[] = [];
     for (let multi_line_string_coordinates of response_json) {
         features.push(multi_line_string_coordinates ? {
             type: "Feature",
@@ -160,7 +182,7 @@ export async function batch_requests(
     }
     let result: {
         type: "FeatureCollection",
-        features: Response_Feature_Type[]
+        features: (Response_Feature_Type | null)[]
     } = {
         type: "FeatureCollection",
         features
@@ -169,7 +191,7 @@ export async function batch_requests(
 }
 
 
-let fetch_with_abort_controller = null;
+let fetch_with_abort_controller:AbortController|null = null;
 async function fetch_with_abort(url: RequestInfo, parameters: RequestInit = {}) {
     // Abort the previous fetch request if there is one still in flight
     if (fetch_with_abort_controller) {

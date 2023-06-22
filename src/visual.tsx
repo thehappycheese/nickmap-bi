@@ -16,7 +16,7 @@ import * as ReactDOM from "react-dom";
 import { ControlsMode, NickMapBIFormattingSettings } from "./settings";
 
 import {dataview_table_role_column_indices__all, transform_data_view} from './dataview_table_helpers'
-import { batch_requests, BatchRequestAbortedError } from './linref'
+import { batch_requests, BatchRequestAbortedError, BatchRequestOutdatedAfterFetchError, BatchRequestRequestIDMismatchError } from './linref'
 import { zip_arrays} from './util/itertools'
 import { NickmapFeatureCollection } from "./NickmapFeatures";
 import { Fetch_Data_State } from "./nickmap/Fetch_Data_Sate";
@@ -51,6 +51,8 @@ export class Visual implements IVisual {
             options.element
         );
         this.formattingSettingsService = new FormattingSettingsService();
+        // attempt to set default settings?
+        this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(NickMapBIFormattingSettings, []);
         this.feature_collection = {type:"FeatureCollection", features:[]};
     }
 
@@ -80,19 +82,32 @@ export class Visual implements IVisual {
         // VERIFY INPUT TABLE HAS BASIC COLUMNS REQUIRED
         // =============================================
         
-        // TODO: this is called again internally in transform_data_view which is a waste. Can it be changed to a parameter?
+        
         const mandatory_columns = {
             "road_number":"Road Number",
             "slk_from"   :"SLK From",
             "slk_to"     :"SLK To", 
-        };
-        const role_column_indicies = dataview_table_role_column_indices__all(dataview_table);
-        const columns_present = new Set([...Object.keys(mandatory_columns)].filter(item=>item in role_column_indicies))
-        const columns_missing = [...Object.keys(mandatory_columns)].filter(item=>!columns_present.has(item))
-        if(columns_missing.length>0){
-            // Missing all columns
-            
-            const missing_column_names = [...columns_missing].map(role_name=>mandatory_columns[role_name])
+        } as const;
+        // TODO: dataview_table_role_column_indices__all is called again 
+        //       internally in transform_data_view which is a waste.
+        //       Can it be changed to a parameter?
+        const role_column_indices = dataview_table_role_column_indices__all(dataview_table);
+        const columns_present = (
+            new Set([...Object.keys(mandatory_columns)]
+            .filter(item=>item in role_column_indices))
+        );
+        const columns_missing = (
+            [...Object.keys(mandatory_columns)]
+            .filter(item=>
+                !columns_present.has(item)
+            )
+        ) as (keyof typeof mandatory_columns)[];
+
+        if(columns_missing.length > 0){
+            const missing_column_names = (
+                [...columns_missing]
+                .map(role_name=>mandatory_columns[role_name])
+            );
             this.feature_loading_state = {
                 type:"MISSING INPUT",
                 reason:`${missing_column_names.join(', ')}`
@@ -106,7 +121,7 @@ export class Visual implements IVisual {
         // BUILD DATASTRUCTURE FOR BATCH REQUEST
         // =====================================
         
-        let input_properties = [];
+        let input_properties: ReturnType<typeof transform_data_view> = [];
         try{
             input_properties = transform_data_view(
                 dataview_table,
@@ -129,11 +144,12 @@ export class Visual implements IVisual {
         // RUN BATCH REQUEST
         // Note that `batch_requests` is an async function
         // ===============================================
-        this.features_requested_count = dataview_table.rows.length;
+        this.features_requested_count = dataview_table.rows?.length ?? 0;
         this.feature_loading_state = {type:"PENDING"};
         if(input_properties.length===0){
             // batch_requests will return (almost) immediately,
-            // it will clear features, and set status to SUCCESS
+            // the promise chain will automatically clear features,
+            // and set status to SUCCESS if there are zero inputs
         }else{
             // batch_requests will take some time to complete
             // we need to do a render in the meantime to show "loading" status
@@ -144,6 +160,11 @@ export class Visual implements IVisual {
             this.formattingSettings.advanced_settings.offset_multiplier.value
         ).then(
             (returned_features)=>{
+                // let unmappable_rows:{
+                //     row:number,
+                //     selection_id:powerbi.visuals.ISelectionId,
+                //     reason:string
+                // } = []
                 let features_filtered_and_coloured:NickmapFeatureCollection = {
                     type     : "FeatureCollection",
                     features : []
@@ -163,6 +184,10 @@ export class Visual implements IVisual {
                                 }
                             }
                         )
+                    }else{
+                        if(feature===null || feature===undefined){
+
+                        }
                     }
                 }
                 this.feature_loading_state = {type:"SUCCESS"}
@@ -172,6 +197,12 @@ export class Visual implements IVisual {
             failure=>{
                 if(failure instanceof BatchRequestAbortedError){
                     this.feature_loading_state = {type:"PENDING"}
+                }else if(failure instanceof BatchRequestOutdatedAfterFetchError){
+                    // leave the state as it was before?
+                    //this.feature_loading_state = {type:"UNKNOWN"}
+                }else if(failure instanceof BatchRequestRequestIDMismatchError){
+                    console.log(failure)
+                    this.feature_loading_state = {type:"FAILED", reason:"Server Error"}
                 }else{
                     console.log(failure)
                     this.feature_loading_state = {type:"FAILED", reason:failure.message}
@@ -192,7 +223,7 @@ export class Visual implements IVisual {
         ReactDOM.render(
             <NickMap
                 host={this.host}
-                version_text = "v4.2.1 NickMapBI"
+                version_text = "v4.2.2 NickMapBI"
 
                 layer_arcgis_rest_url                 = {map_background_settings.url_tile_arcgis.value}
                 layer_arcgis_rest_show_initial        = {map_background_settings.url_tile_arcgis_show.value}

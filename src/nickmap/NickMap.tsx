@@ -39,6 +39,8 @@ import { road_network_styles } from './layers/road_network';
 import { Extent } from 'ol/extent';
 import { Coordinate } from 'ol/coordinate';
 import { Fill } from 'ol/style';
+import { FeatureLike } from 'ol/Feature';
+import { Geometry } from 'ol/geom';
 
 type NickMapProps = {
     
@@ -94,11 +96,9 @@ export function NickMap(props:NickMapProps){
     const [layer_road_network_show      , set_layer_road_network_show      ] = useState(props.layer_road_network_show_initial);
     const [layer_road_network_ticks_show, set_layer_road_network_ticks_show] = useState(props.layer_road_network_ticks_show_initial);
     const [zoom_to_road_slk_state       , set_zoom_to_road_slk_state       ] = useState<Fetch_Data_State>({type:"IDLE"});
-
-    const [show_explanation, set_show_explanation]                           = useState({show:false, explanation:<></>})
-   
-    const select_status_display_ref  = useRef<HTMLDivElement | null>(null)
-    const map_root_ref               = useRef<HTMLDivElement>();
+    const [show_explanation, set_show_explanation]                           = useState({show:false, explanation:<></>});
+    const select_status_display_ref  = useRef<HTMLDivElement | null>(null);
+    const map_root_ref               = useRef<HTMLDivElement | null>(null);
     
     
     
@@ -130,7 +130,7 @@ export function NickMap(props:NickMapProps){
             const extent = drag_interaction_ref.current.getGeometry().getExtent();
             let features_within_dragged_box_extent = vector_source_data_ref.current
                 .getFeaturesInExtent(extent)
-                .filter((feature) => feature.getGeometry().intersectsExtent(extent));
+                .filter((feature) => feature.getGeometry()?.intersectsExtent(extent));
             
             // compensate for view rotation
             const map_rotation = map_ref.current.getView().getRotation();
@@ -140,7 +140,8 @@ export function NickMap(props:NickMapProps){
                 drag_box_geometry_rotated.rotate(-map_rotation, anchor);
                 const drag_box_geometry_rotated_extent = drag_box_geometry_rotated.getExtent();
                 features_within_dragged_box_extent = features_within_dragged_box_extent.filter(feature => {
-                    const feature_geometry_rotated = feature.getGeometry().clone();
+                    const feature_geometry_rotated = feature.getGeometry()?.clone();
+                    if(feature_geometry_rotated===undefined) return false;
                     feature_geometry_rotated.rotate(-map_rotation, anchor);
                     return feature_geometry_rotated.intersectsExtent(drag_box_geometry_rotated_extent);
                 });
@@ -242,14 +243,16 @@ export function NickMap(props:NickMapProps){
             ]
         })
         map.getViewport().addEventListener("dragenter",function(event){
-            event.dataTransfer.dropEffect = "move";
+            if (event.dataTransfer){
+                event.dataTransfer.dropEffect = "move";
+            }
         })
         map.getViewport().addEventListener("dragover",function(event){
             event.preventDefault();
         })
         map.getViewport().addEventListener("drop", function(event){
             let target:HTMLDivElement = event.target as HTMLDivElement;
-            if (event.dataTransfer.getData("Text")==="the pegman commeth!"){
+            if (event.dataTransfer?.getData("Text")==="the pegman commeth!"){
                 let rec = target.getBoundingClientRect();
                 let px = [
                     event.clientX - rec.left,
@@ -259,7 +262,7 @@ export function NickMap(props:NickMapProps){
                 goto_google_street_view(loc, props.host);
             }
         });
-        map.on("movestart",event=>{
+        map.on("movestart", event=>{
             props.tooltip_service.hide({immediately:true, isTouchEvent:false});
         })
         // ========== HOVER TOOLTIP ============
@@ -282,7 +285,7 @@ export function NickMap(props:NickMapProps){
             })
         };
 
-        let pointer_hover_feature;
+        let pointer_hover_feature:FeatureLike|undefined = undefined;
         map.on('pointermove', (event:MapBrowserEvent<any>) => {
             let found = false;
             map.forEachFeatureAtPixel(event.pixel, (feature, layer) => {
@@ -309,7 +312,13 @@ export function NickMap(props:NickMapProps){
     });
     useEffect(()=>{
         // Mount Map
-        map_ref.current.setTarget(map_root_ref.current)
+        if(map_root_ref.current === null){
+            console.log("FAILED TO MOUNT MAP: map_root_ref.current === null")
+            // TODO: not sure how to handle this. It would be nice if we could
+            //       be sure it would not happen
+        }else{
+            map_ref.current.setTarget(map_root_ref.current)
+        }
     },[])
 
     // =====================================================
@@ -368,7 +377,7 @@ export function NickMap(props:NickMapProps){
     // ============================
     useEffect(()=>{
         if (props.layer_wmts_url && layer_wmts_show){
-            layer_wmts.getSource().setUrl(props.layer_wmts_url)
+            layer_wmts.getSource()?.setUrl(props.layer_wmts_url)
             layer_wmts.setVisible(true)
         }else{
             layer_wmts.setVisible(false)
@@ -380,7 +389,7 @@ export function NickMap(props:NickMapProps){
     // ==============================
     useEffect(()=>{
         if (props.layer_arcgis_rest_url && layer_arcgis_rest_show){
-            layer_arcgis_rest.getSource().setUrl(props.layer_arcgis_rest_url)
+            layer_arcgis_rest.getSource()?.setUrl(props.layer_arcgis_rest_url)
             layer_arcgis_rest.setVisible(true)
         }else{
             layer_arcgis_rest.setVisible(false)
@@ -392,7 +401,7 @@ export function NickMap(props:NickMapProps){
     // ============================
     useEffect(()=>{
         if (props.layer_wmts_url && layer_wmts_show){
-            layer_wmts.getSource().setUrl(props.layer_wmts_url)
+            layer_wmts.getSource()?.setUrl(props.layer_wmts_url)
             layer_wmts.setVisible(true)
         }else{
             layer_wmts.setVisible(false)
@@ -455,7 +464,11 @@ export function NickMap(props:NickMapProps){
                     on_go_to_google_maps={()=>{
                         let center = map_ref.current.getView().getCenter();
                         let zoom = map_ref.current.getView().getZoom();
-                        goto_google_maps(center, zoom, props.host)
+                        if(center===undefined || zoom===undefined) return;
+                        // TODO: silent failure here is not ok, but seems
+                        //       unlikely to happen without lots of other things
+                        //       going wrong before
+                        goto_google_maps(center, zoom, props.host);
                     }}
 
                     layer_wmts_available        = {props.layer_wmts_url!==""}
@@ -577,7 +590,7 @@ function render_features_helper(
     map:OpenLayersMap,
     selection_manager  : powerbi.extensibility.ISelectionManager,
     select_interaction : Select,
-    select_status_display_ref:React.MutableRefObject<HTMLDivElement>,
+    select_status_display_ref:React.MutableRefObject<HTMLDivElement | null>,
     zoom_to_extent = true
 ){
     vector_source_data.clear()
@@ -598,8 +611,8 @@ function render_features_helper(
     select_interaction_features.clear()
     if(selection_manager.hasSelection()){
         const features = vector_source_data.getFeatures()
-        const selected_features = [];
-        const valid_selection_ids = [];
+        const selected_features:Feature<Geometry>[] = [];
+        const valid_selection_ids:powerbi.extensibility.ISelectionId[] = [];
         selection_manager.getSelectionIds().forEach(selection_id=>{
             const found_feature = features.find(feature=>feature.get("selection_id").equals(selection_id));
             if (found_feature){
@@ -615,6 +628,8 @@ function render_features_helper(
     update_status_selection_count_helper(select_interaction_features.getLength(), select_status_display_ref)
 }
 
-function update_status_selection_count_helper(count:number, select_status_display_ref:React.MutableRefObject<HTMLDivElement>){
-    select_status_display_ref.current.innerText = `Selected: ${count}`;
+function update_status_selection_count_helper(count:number, select_status_display_ref:React.MutableRefObject<HTMLDivElement|null>){
+    if(select_status_display_ref.current){
+        select_status_display_ref.current.innerText = `Selected: ${count}`;
+    }
 }

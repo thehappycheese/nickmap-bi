@@ -8,44 +8,36 @@ import { IValueFormatter } from "powerbi-visuals-utils-formattingutils/lib/src/v
  * This means that the DataViewTable is set up to accommodate multiple columns with the
  * same role. For example there may be more than one column with the `road_number` role.
  * 
- * For this visual, this is very annoying ant it makes it pretty frustrating to extract rows of data.
+ * This behavior is undesirable for this visual, and it makes it pretty
+ * frustrating to extract rows of data.
  * 
  * returns: A mapping between <key:role_name --> value:column_number>
  * 
  */
-export function dataview_table_role_column_indices__first(data_view_table:powerbi.DataViewTable) {
-    // Get unique list of roles
-    let roles:string[] = Array.from(
-        new Set(
-            data_view_table
-            .columns
-            .reduce((acc,cur)=>[...Object.keys(cur.roles),...acc],[])
-        )
-    );
-    // Find the first column in the data_view_table which is in each role
-    let role_column:[string, number][] = roles.map(
-        role_name=> [role_name, data_view_table.columns.findIndex(column=>role_name in column.roles)]
-    )
-    
-    return Object.fromEntries(role_column)
-}
-
 
 export function dataview_table_role_column_indices__all(data_view_table:powerbi.DataViewTable) {
-    // Get unique list of roles
-    let roles:string[] = Array.from(
+    // Get unique list of roles from the list of columns.
+    // A reduce  is used to extract every column's list of roles,
+    // then Set is used to remove duplicates.
+    let role_names:string[] = Array.from(
         new Set(
-            data_view_table
-            .columns
-            .reduce((acc,cur)=>[...Object.keys(cur.roles),...acc],[])
+            data_view_table.columns
+            .reduce<string[]>(
+                (acc, cur)=>[...Object.keys(cur.roles ?? {}),...acc],
+                []
+            )
         )
     );
-    // Find the first column in the data_view_table which is in each role
-    let role_column:[string, number[]][] = roles.map(
-        role_name=> [role_name, data_view_table.columns.reduce(
-            (acc, column, column_index)=>(role_name in column.roles)? [...acc, column_index]:acc,
-            []
-        )]
+    // Map the name of each role to the indices of the columns that have that
+    // role.
+    let role_column:[string, number[]][] = role_names.map(
+        role_name=> [
+            role_name,
+            data_view_table.columns.reduce<number[]>(
+                (acc, column, column_index)=>(column.roles && role_name in column.roles)? [...acc, column_index]:acc,
+                []
+            )
+        ]
     )
     
     return Object.fromEntries(role_column)
@@ -73,6 +65,9 @@ export function transform_data_view(
     selection_id : powerbi.visuals.ISelectionId
     tooltips     : feature_tooltip_items
 }[]{
+    if (data_view_table.rows === undefined){
+        return [];
+    }
     let result = [];
     let role_columns = dataview_table_role_column_indices__all(data_view_table);
 
