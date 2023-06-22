@@ -34,16 +34,20 @@ import * as React from "react";
 import { NickmapFeatureCollection } from '../NickmapFeatures';
 import { Fetch_Data_State } from './Fetch_Data_Sate';
 import { ITooltipServiceWrapper } from 'powerbi-visuals-utils-tooltiputils';
-import { feature_tooltip_items } from '../dataview_table_helpers';
+import { FeatureTooltipItem } from "../data_types/FeatureTooltipItems";
 import { road_network_styles } from './layers/road_network';
 import { Extent } from 'ol/extent';
 import { Coordinate } from 'ol/coordinate';
 import { Fill } from 'ol/style';
+import { FeatureLike } from 'ol/Feature';
+import { Geometry } from 'ol/geom';
+import { NonMappableRow } from '../data_types/NonMappableRow';
+import { set } from 'ol/transform';
 
 type NickMapProps = {
     
     host:IVisualHost // good change to try context provider
-    version_text:string
+    version_node:React.ReactNode
 
     layer_arcgis_rest_url:string
     layer_arcgis_rest_show_initial:boolean
@@ -64,17 +68,23 @@ type NickMapProps = {
     controls_size:number
     controls_mode:"Collapsed"|"Expanded"|"Disabled"
 
+    show_non_mappable_rows:boolean
+    show_result_count:boolean
+
     allow_drag_box_selection:boolean
 
     feature_collection:NickmapFeatureCollection
     feature_collection_request_count:number
     feature_loading_state:Fetch_Data_State
+    non_mappable_rows:NonMappableRow[]
+
+
 
 
     selection_manager:powerbi.extensibility.ISelectionManager
     
     tooltip_service:powerbi.extensibility.ITooltipService
-    tooltip_service_wrapper: ITooltipServiceWrapper
+    tooltip_service_wrapper: ITooltipServiceWrapper,
 
 }
 
@@ -94,11 +104,9 @@ export function NickMap(props:NickMapProps){
     const [layer_road_network_show      , set_layer_road_network_show      ] = useState(props.layer_road_network_show_initial);
     const [layer_road_network_ticks_show, set_layer_road_network_ticks_show] = useState(props.layer_road_network_ticks_show_initial);
     const [zoom_to_road_slk_state       , set_zoom_to_road_slk_state       ] = useState<Fetch_Data_State>({type:"IDLE"});
-
-    const [show_explanation, set_show_explanation]                           = useState({show:false, explanation:<></>})
-   
-    const select_status_display_ref  = useRef<HTMLDivElement | null>(null)
-    const map_root_ref               = useRef<HTMLDivElement>();
+    const [show_explanation, set_show_explanation]                           = useState({show:false, explanation:<></>});
+    const select_status_display_ref  = useRef<HTMLDivElement | null>(null);
+    const map_root_ref               = useRef<HTMLDivElement | null>(null);
     
     
     
@@ -130,7 +138,7 @@ export function NickMap(props:NickMapProps){
             const extent = drag_interaction_ref.current.getGeometry().getExtent();
             let features_within_dragged_box_extent = vector_source_data_ref.current
                 .getFeaturesInExtent(extent)
-                .filter((feature) => feature.getGeometry().intersectsExtent(extent));
+                .filter((feature) => feature.getGeometry()?.intersectsExtent(extent));
             
             // compensate for view rotation
             const map_rotation = map_ref.current.getView().getRotation();
@@ -140,7 +148,8 @@ export function NickMap(props:NickMapProps){
                 drag_box_geometry_rotated.rotate(-map_rotation, anchor);
                 const drag_box_geometry_rotated_extent = drag_box_geometry_rotated.getExtent();
                 features_within_dragged_box_extent = features_within_dragged_box_extent.filter(feature => {
-                    const feature_geometry_rotated = feature.getGeometry().clone();
+                    const feature_geometry_rotated = feature.getGeometry()?.clone();
+                    if(feature_geometry_rotated===undefined) return false;
                     feature_geometry_rotated.rotate(-map_rotation, anchor);
                     return feature_geometry_rotated.intersectsExtent(drag_box_geometry_rotated_extent);
                 });
@@ -242,14 +251,16 @@ export function NickMap(props:NickMapProps){
             ]
         })
         map.getViewport().addEventListener("dragenter",function(event){
-            event.dataTransfer.dropEffect = "move";
+            if (event.dataTransfer){
+                event.dataTransfer.dropEffect = "move";
+            }
         })
         map.getViewport().addEventListener("dragover",function(event){
             event.preventDefault();
         })
         map.getViewport().addEventListener("drop", function(event){
             let target:HTMLDivElement = event.target as HTMLDivElement;
-            if (event.dataTransfer.getData("Text")==="the pegman commeth!"){
+            if (event.dataTransfer?.getData("Text")==="the pegman commeth!"){
                 let rec = target.getBoundingClientRect();
                 let px = [
                     event.clientX - rec.left,
@@ -259,30 +270,32 @@ export function NickMap(props:NickMapProps){
                 goto_google_street_view(loc, props.host);
             }
         });
-        map.on("movestart",event=>{
+        map.on("movestart", event=>{
             props.tooltip_service.hide({immediately:true, isTouchEvent:false});
         })
         // ========== HOVER TOOLTIP ============
         const show_tooltip = (selected_item:Feature, clientX:number, clientY:number, is_touch:boolean) => {
-            let tooltips:feature_tooltip_items = selected_item.get("tooltips")
-            let selection_id:feature_tooltip_items = selected_item.get("selection_id")
-            props.tooltip_service.show({
-                coordinates:[
-                    clientX,
-                    clientY
-                ],
-                dataItems:tooltips.map(item=>({
-                    displayName: item.column_name,
-                    value: String(item.value),
-                    color: "",
-                    header: ""
-                })),
-                isTouchEvent:is_touch,
-                identities:selection_id
-            })
+            let tooltips:FeatureTooltipItem[] = selected_item.get("tooltips")
+            let selection_id:powerbi.extensibility.ISelectionId = selected_item.get("selection_id")
+            if(!(tooltips===undefined || tooltips.length===0)){
+                props.tooltip_service.show({
+                    coordinates:[
+                        clientX,
+                        clientY
+                    ],
+                    dataItems:tooltips.map(item=>({
+                        displayName: item.column_name,
+                        value: String(item.value),
+                        color: "",
+                        header: ""
+                    })),
+                    isTouchEvent:is_touch,
+                    identities:[selection_id]
+                })
+            }
         };
 
-        let pointer_hover_feature;
+        let pointer_hover_feature:FeatureLike|undefined = undefined;
         map.on('pointermove', (event:MapBrowserEvent<any>) => {
             let found = false;
             map.forEachFeatureAtPixel(event.pixel, (feature, layer) => {
@@ -309,7 +322,13 @@ export function NickMap(props:NickMapProps){
     });
     useEffect(()=>{
         // Mount Map
-        map_ref.current.setTarget(map_root_ref.current)
+        if(map_root_ref.current === null){
+            console.log("FAILED TO MOUNT MAP: map_root_ref.current === null")
+            // TODO: not sure how to handle this. It would be nice if we could
+            //       be sure it would not happen
+        }else{
+            map_ref.current.setTarget(map_root_ref.current)
+        }
     },[])
 
     // =====================================================
@@ -368,7 +387,7 @@ export function NickMap(props:NickMapProps){
     // ============================
     useEffect(()=>{
         if (props.layer_wmts_url && layer_wmts_show){
-            layer_wmts.getSource().setUrl(props.layer_wmts_url)
+            layer_wmts.getSource()?.setUrl(props.layer_wmts_url)
             layer_wmts.setVisible(true)
         }else{
             layer_wmts.setVisible(false)
@@ -380,7 +399,7 @@ export function NickMap(props:NickMapProps){
     // ==============================
     useEffect(()=>{
         if (props.layer_arcgis_rest_url && layer_arcgis_rest_show){
-            layer_arcgis_rest.getSource().setUrl(props.layer_arcgis_rest_url)
+            layer_arcgis_rest.getSource()?.setUrl(props.layer_arcgis_rest_url)
             layer_arcgis_rest.setVisible(true)
         }else{
             layer_arcgis_rest.setVisible(false)
@@ -392,7 +411,7 @@ export function NickMap(props:NickMapProps){
     // ============================
     useEffect(()=>{
         if (props.layer_wmts_url && layer_wmts_show){
-            layer_wmts.getSource().setUrl(props.layer_wmts_url)
+            layer_wmts.getSource()?.setUrl(props.layer_wmts_url)
             layer_wmts.setVisible(true)
         }else{
             layer_wmts.setVisible(false)
@@ -455,7 +474,11 @@ export function NickMap(props:NickMapProps){
                     on_go_to_google_maps={()=>{
                         let center = map_ref.current.getView().getCenter();
                         let zoom = map_ref.current.getView().getZoom();
-                        goto_google_maps(center, zoom, props.host)
+                        if(center===undefined || zoom===undefined) return;
+                        // TODO: silent failure here is not ok, but seems
+                        //       unlikely to happen without lots of other things
+                        //       going wrong before
+                        goto_google_maps(center, zoom, props.host);
                     }}
 
                     layer_wmts_available        = {props.layer_wmts_url!==""}
@@ -485,20 +508,46 @@ export function NickMap(props:NickMapProps){
                 <div>
                     {/* Grid Placeholder */}
                 </div>
-                <div className="nickmap-status-text">{
+                <div className="nickmap-status-box">{
                     build_status_display(props, ()=>set_show_explanation({
                         show:true,
                         explanation:<>
-                            Possibly Road Number is invalid, or the SLK From/To range is incorrect,
-                            or the SLK From/To range is in a Point of Equation.
-                            This visual relies on the version of the IRIS road network avalaible on the
-                            Main Roads open data portal; maybe that version does not have the road or SLK
-                            you are looking for.
+                            The following rows could not be mapped:
+                            <table className='nickmap-non-mappable'>
+                                <thead>
+                                    <th>row</th>
+                                    <th>reason</th>
+                                    <th>road</th>
+                                    <th>cwy</th>
+                                    <th>slk_from</th>
+                                    <th>slk_to</th>
+                                    <th colSpan={99}>tooltips</th>
+                                </thead>
+                                <tbody>
+                                    {props.non_mappable_rows.slice(0,10).map(item=><tr>{[
+                                        <td>{item.row_number}</td>,
+                                        <td>{item.reason}</td>,
+                                        <td>{item.query.road}</td>,
+                                        <td>{item.query.cwy}</td>,
+                                        <td>{item.query.slk_from.toFixed(3)}</td>,
+                                        <td>{item.query.slk_to.toFixed(3)}</td>,
+                                        ...item.tooltips.map(column=><td>{column.value.toString()}</td>)
+                                    ]}</tr>)}
+                                </tbody>
+                            </table>
+                            {props.non_mappable_rows.length > 10 && `... ${props.non_mappable_rows.length-10} other rows not shown`}
+                            <button
+                                title='Select the offending rows in all other visuals on this page'
+                                onClick={()=>{
+                                    set_show_explanation({show:false, explanation:<></>});
+                                    props.selection_manager.clear();
+                                    props.selection_manager.select(props.non_mappable_rows.map(item=>item.selection_id));
+                                }}>Highlight these rows in other visuals</button>
                         </>
                     }))
                 }</div>
-                <div ref={select_status_display_ref} className="nickmap-status-selected">{`Selected: ${props.selection_manager.getSelectionIds().length}`}</div>
-                <div className="nickmap-version-text" title={props.version_text}>{props.version_text}</div>
+                <div ref={select_status_display_ref} className="nickmap-status-box">{`Selected: ${props.selection_manager.getSelectionIds().length}`}</div>
+                <div className="nickmap-version-text">{props.version_node}</div>
             </div>
             <div 
                 className='nickmap-modal-explanation'
@@ -513,33 +562,71 @@ export function NickMap(props:NickMapProps){
 
 
 
-function build_status_display(props:NickMapProps, show_why_cant_map_some_features:()=>void){
+function build_status_display(props:NickMapProps, show_why_cant_map_some_features:()=>void) : React.ReactNode{
     switch(props.feature_loading_state.type){
         case "SUCCESS":
-            return <>
-                <>{
-                    props.feature_collection_request_count===30_000 &&
-                    <span className="nickmap-status-text-error">Limited to 30,000 rows! </span>
-                }</>
-                <>{
-                    props.feature_collection_request_count !== props.feature_collection.features.length &&
-                    <span className='nickmap-status-text-warning'>
-                        {`${props.feature_collection_request_count-props.feature_collection.features.length} rows could not be mapped `}
-                        <a href="#" style={{pointerEvents:"all"}} onClick={()=>show_why_cant_map_some_features()}>why?</a>
-                    </span>
-                }</>
-                <>{` Showing ${props.feature_collection.features.length}`}</>
-            </>
+            let message_hit_max_result_count:React.ReactNode = null;
+            if(props.feature_collection_request_count===30_000){
+                if(props.show_result_count){
+                    message_hit_max_result_count = <span className="nickmap-status-text-error">Limited to 30,000 rows!</span>;
+                }else{
+                    message_hit_max_result_count = <span className="nickmap-status-text-error">Too many rows to map, please add more filters!</span>;
+                }
+            }
+
+            let message_count_missing_rows:React.ReactNode = null;
+            if(props.feature_collection_request_count !== props.feature_collection.features.length){
+                let count_missing_rows = props.feature_collection_request_count-props.feature_collection.features.length;
+                if (count_missing_rows<=0){
+                    // show no message, something went badly wrong
+                }else{
+                    if(props.show_non_mappable_rows){
+                        message_count_missing_rows = <span className='nickmap-status-text-warning'>
+                            <a href="#" style={{pointerEvents:"all"}} onClick={()=>show_why_cant_map_some_features()}>{
+                                `${count_missing_rows.toFixed(0)} rows could not be mapped`
+                            }</a>
+                        </span>;
+                    }
+                }
+            }
+
+            let message_count_rows_mapped_or_done:React.ReactNode = null;
+            if(props.feature_collection.features.length>0){
+                if(props.show_result_count){
+                    message_count_rows_mapped_or_done = `Showing ${props.feature_collection.features.length}`;
+                }else{
+                    message_count_rows_mapped_or_done = "Done";
+                }
+            }
+            return [
+                message_hit_max_result_count," ",
+                message_count_missing_rows," ",
+                message_count_rows_mapped_or_done,
+            ]
+
         case "FAILED":
-            return <span className='nickmap-status-text-error'>
-                <>{`FAILED TO LOAD ${props.feature_collection_request_count} ROWS`}</>
-                <br/>
-                <>{`(${props.feature_loading_state.reason})`}</>
-            </span>
+            if(props.show_result_count){
+                return <span className='nickmap-status-text-error'>
+                    {`Failed to load ${props.feature_collection_request_count} rows`}
+                    <br/>{`(${props.feature_loading_state.reason})`}
+                </span>
+            }else{
+                return <span className='nickmap-status-text-error'>
+                {`Failed to load results`}
+                <br/>{`(${props.feature_loading_state.reason})`}
+                </span>
+            }
+
         case "IDLE":
-            return <>Starting up...</>
+            return "Starting up"
+
         case "PENDING":
-            return <>{`Loading ${props.feature_collection_request_count}`}</>
+            if(props.show_result_count){
+                return `Loading ${props.feature_collection_request_count}`
+            }else{
+                return `Loading...`
+            }
+
         case "MISSING INPUT":
             return <span className='nickmap-status-text-warning'>
                 <>Missing columns;</>
@@ -577,7 +664,7 @@ function render_features_helper(
     map:OpenLayersMap,
     selection_manager  : powerbi.extensibility.ISelectionManager,
     select_interaction : Select,
-    select_status_display_ref:React.MutableRefObject<HTMLDivElement>,
+    select_status_display_ref:React.MutableRefObject<HTMLDivElement | null>,
     zoom_to_extent = true
 ){
     vector_source_data.clear()
@@ -598,8 +685,8 @@ function render_features_helper(
     select_interaction_features.clear()
     if(selection_manager.hasSelection()){
         const features = vector_source_data.getFeatures()
-        const selected_features = [];
-        const valid_selection_ids = [];
+        const selected_features:Feature<Geometry>[] = [];
+        const valid_selection_ids:powerbi.extensibility.ISelectionId[] = [];
         selection_manager.getSelectionIds().forEach(selection_id=>{
             const found_feature = features.find(feature=>feature.get("selection_id").equals(selection_id));
             if (found_feature){
@@ -615,6 +702,8 @@ function render_features_helper(
     update_status_selection_count_helper(select_interaction_features.getLength(), select_status_display_ref)
 }
 
-function update_status_selection_count_helper(count:number, select_status_display_ref:React.MutableRefObject<HTMLDivElement>){
-    select_status_display_ref.current.innerText = `Selected: ${count}`;
+function update_status_selection_count_helper(count:number, select_status_display_ref:React.MutableRefObject<HTMLDivElement|null>){
+    if(select_status_display_ref.current){
+        select_status_display_ref.current.innerText = `Selected: ${count}`;
+    }
 }

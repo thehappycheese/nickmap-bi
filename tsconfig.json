@@ -13,9 +13,10 @@
         "lib": [
             "es2022",
             "dom"
-        ]
+        ],
+        "strict": true
     },
     "files": [
-        "./src/visual.tsx"
+        "./src/visual.tsx", "src/data_types/NonMappableRow.tsx", "src/data_types/FeatureTooltipItems.ts"
     ]
 }

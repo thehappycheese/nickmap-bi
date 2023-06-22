@@ -29,9 +29,11 @@
     right :0.3em;
     left  :0.3em;
     z-index: 9999;
-    display:grid;
-    grid-template-columns: 1fr auto auto auto;
-    gap:1em;
+    display:flex;
+    flex-direction:row;
+    justify-content: end;
+    align-items: end;
+    gap:0.5em;
     
 }
 
@@ -53,11 +55,12 @@
     max-width: 80%;
 }
 
-.nickmap-status-text, .nickmap-status-selected{
+.nickmap-status-box {
     color: #000;
     background-color:rgba(255,255,255,0.75);
-    border-radius: 4px;
-    padding:3px;
+    border-radius: 0.2em;
+    padding:0.1em 0.2em;
+    white-space: nowrap;
 }
 .nickmap-version-text{
     overflow: hidden;
@@ -80,4 +83,21 @@
     top:0.3em;
     bottom:unset;
     left:unset;
+}
+
+table.nickmap-non-mappable {
+    border: 1px solid grey;
+    border-collapse: collapse;
+    font-size: 80%;
+}
+table.nickmap-non-mappable th{
+    border-right: 1px solid grey;
+}
+table.nickmap-non-mappable th,
+table.nickmap-non-mappable td {
+    text-align: left;
+    padding: 0.1em 0.5em;
+}
+table.nickmap-non-mappable tr {
+    border: 1px solid grey;
 }

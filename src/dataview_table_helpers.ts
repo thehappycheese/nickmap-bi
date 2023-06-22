@@ -1,6 +1,7 @@
 import powerbi from "powerbi-visuals-api";
 import { valueFormatter } from "powerbi-visuals-utils-formattingutils";
 import { IValueFormatter } from "powerbi-visuals-utils-formattingutils/lib/src/valueFormatter";
+import { FeatureTooltipItem } from "./data_types/FeatureTooltipItems";
 
 /**
  * Unless restricted by capabilities.json,
@@ -8,55 +9,59 @@ import { IValueFormatter } from "powerbi-visuals-utils-formattingutils/lib/src/v
  * This means that the DataViewTable is set up to accommodate multiple columns with the
  * same role. For example there may be more than one column with the `road_number` role.
  * 
- * For this visual, this is very annoying ant it makes it pretty frustrating to extract rows of data.
+ * This behavior is undesirable for this visual, and it makes it pretty
+ * frustrating to extract rows of data.
  * 
  * returns: A mapping between <key:role_name --> value:column_number>
  * 
  */
-export function dataview_table_role_column_indices__first(data_view_table:powerbi.DataViewTable) {
-    // Get unique list of roles
-    let roles:string[] = Array.from(
-        new Set(
-            data_view_table
-            .columns
-            .reduce((acc,cur)=>[...Object.keys(cur.roles),...acc],[])
-        )
-    );
-    // Find the first column in the data_view_table which is in each role
-    let role_column:[string, number][] = roles.map(
-        role_name=> [role_name, data_view_table.columns.findIndex(column=>role_name in column.roles)]
-    )
-    
-    return Object.fromEntries(role_column)
-}
-
 
 export function dataview_table_role_column_indices__all(data_view_table:powerbi.DataViewTable) {
-    // Get unique list of roles
-    let roles:string[] = Array.from(
+    // Get unique list of roles from the list of columns.
+    // A reduce  is used to extract every column's list of roles,
+    // then Set is used to remove duplicates.
+    let role_names:string[] = Array.from(
         new Set(
-            data_view_table
-            .columns
-            .reduce((acc,cur)=>[...Object.keys(cur.roles),...acc],[])
+            data_view_table.columns
+            .reduce<string[]>(
+                (acc, cur)=>[...Object.keys(cur.roles ?? {}),...acc],
+                []
+            )
         )
     );
-    // Find the first column in the data_view_table which is in each role
-    let role_column:[string, number[]][] = roles.map(
-        role_name=> [role_name, data_view_table.columns.reduce(
-            (acc, column, column_index)=>(role_name in column.roles)? [...acc, column_index]:acc,
-            []
-        )]
+    // Map the name of each role to the indices of the columns that have that
+    // role.
+    let role_column:[string, number[]][] = role_names.map(
+        role_name=> [
+            role_name,
+            data_view_table.columns.reduce<number[]>(
+                (acc, column, column_index)=>(column.roles && role_name in column.roles)? [...acc, column_index]:acc,
+                []
+            )
+        ]
     )
     
     return Object.fromEntries(role_column)
 }
 
 
-export type feature_tooltip_items = {
-    column_name:string,
-    value:powerbi.PrimitiveValue
-}[]
-
+/**
+ * Transforms a given PowerBI DataViewTable into an array of objects suitable for georeferencing.
+ *
+ * This function iterates over the rows of the input DataViewTable, converting each row 
+ * into an object with properties for road number, start and end SLK, offset, carriageway, colour,
+ * line width, selection_id, and tooltips. These objects can be used as input for the 
+ * batch_requests function, which georeferences these road segments into a FeatureCollection 
+ * suitable for display in OpenLayers.
+ *
+ * @param data_view_table - The DataViewTable from PowerBI that contains the input data.
+ * @param host - The PowerBI visual host, used for creating selection IDs.
+ * @param default_line_width - The default line width to use for road segments.
+ * @param default_line_color - The default line colour to use for road segments.
+ *
+ * @returns An array of objects representing road segments, suitable for input to the 
+ *          batch_requests function for georeferencing.
+ */
 export function transform_data_view(
     data_view_table:powerbi.DataViewTable,
     host:powerbi.extensibility.visual.IVisualHost,
@@ -71,8 +76,11 @@ export function transform_data_view(
     colour       : string,
     line_width   : number,
     selection_id : powerbi.visuals.ISelectionId
-    tooltips     : feature_tooltip_items
+    tooltips     : FeatureTooltipItem[]
 }[]{
+    if (data_view_table.rows === undefined){
+        return [];
+    }
     let result = [];
     let role_columns = dataview_table_role_column_indices__all(data_view_table);
 
@@ -83,14 +91,8 @@ export function transform_data_view(
     }) ?? [];
 
     for (let row_index=0;row_index<data_view_table.rows.length;row_index++){
-        // TODO: Build data integrity report
-        // if(role_columns["road_number"]===undefined || role_columns["road_number"][0]===undefined || !(typeof role_columns["road_number"][0] === "string")){
-        //     continue
-        // }
-        // if(role_columns["road_number"]===undefined || role_columns["road_number"][0]===undefined || !(typeof role_columns["road_number"][0] === "string")){
-        //     continue
-        // }
         let row = data_view_table.rows[row_index];
+
         result.push({
             road_number  :            row[role_columns["road_number"]?.[0]]?.toString() ?? "",
             slk_from     : parseFloat(row[role_columns["slk_from"   ]?.[0]] as any),
