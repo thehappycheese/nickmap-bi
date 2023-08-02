@@ -92,11 +92,22 @@ export function transform_data_view(
 
     for (let row_index=0;row_index<data_view_table.rows.length;row_index++){
         let row = data_view_table.rows[row_index];
-
+        let slk_from = parseFloat(row[role_columns["slk_from"   ]?.[0]] as any);
+        let slk_to   = parseFloat(row[role_columns["slk_to"     ]?.[0]] as any);
+        if(slk_to<slk_from){
+            let temp = slk_to;
+            slk_to = slk_from;
+            slk_from = temp;
+        }
+        if(Math.abs(slk_to-slk_from)<0.001){
+            // for zero length slk segments we will pad to a length of 10 metres
+            slk_from-=0.005;
+            slk_to+=0.005;
+        }
         result.push({
             road_number  :            row[role_columns["road_number"]?.[0]]?.toString() ?? "",
-            slk_from     : parseFloat(row[role_columns["slk_from"   ]?.[0]] as any),
-            slk_to       : parseFloat(row[role_columns["slk_to"     ]?.[0]] as any),
+            slk_from     : slk_from,
+            slk_to       : slk_to,
             offset       : parseFloat(row[role_columns["offset"     ]?.[0]] as any ?? "0"),
             cwy          :            row[role_columns["cwy"        ]?.[0]] as any ?? "LRS",
             colour       :            row[role_columns["colour"     ]?.[0]] as any ?? default_line_color,

@@ -1,7 +1,8 @@
 # Changelog
 
-## [4.2.3] - UNRELEASED - 2023-06-22
+## [4.2.3] - UNRELEASED - 2023-08-02
 
+- Allow SLK From == SLK To (Adds 5 metres either side to create a 10 metre line segment.)
 
 ## [4.2.2] - UNRELEASED - 2023-06-22
 
