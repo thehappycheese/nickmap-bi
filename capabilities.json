@@ -39,16 +39,16 @@
         {
             "displayName":"Offset Metres (+ or -)",
             "name":"offset",
-            "description":"The distance in meters to offset the line segment. Values can be negative or positive: Positive will offset to the right hand side from the perspective of a vehicle travelling in the direction of increasing slk. Keep as small as possible to avoid distortion and invisible features.",
+            "description":"The distance in meters to offset the line segment. Values can be negative or positive: Positive will offset to the right hand side from the perspective of a vehicle traveling in the direction of increasing slk. Keep as small as possible to avoid distortion and invisible features.",
             "kind":"Grouping",
             "preferredTypes":[
                 {"numeric":true}
             ]
         },
         {
-            "displayName":"Colour (CSS)",
-            "name":"colour",
-            "description":"The colour to give each line. Must be a valid CSS colour value. Google 'CSS Colour' and you will find nice charts. Support for PowerBI's automated colour systems in the future.",
+            "displayName":"Color (CSS)",
+            "name":"color",
+            "description":"The color to give each line. Must be a valid CSS color value. Google 'CSS Color' and you will find nice charts. Support for PowerBI's automated color systems in the future.",
             "kind":"Grouping",
             "preferredTypes":[
                 {"text":true}
@@ -63,7 +63,7 @@
     "objects": {
         "line_format": {
             "properties": {
-                "default_line_colour": {"type": {"fill": {"solid": {"color":true}}}},
+                "default_line_color": {"type": {"fill": {"solid": {"color":true}}}},
                 "default_line_width" : {"type": {"numeric": true}}
             }
         },
@@ -71,8 +71,8 @@
             "properties": {
                 "show"             : {"type": {"bool": true}},
                 "show_ticks"       : {"type": {"bool": true}},
-                "state_road_colour": {"type": {"fill": {"solid": {"color":true}}}},
-                "psp_colour"       : {"type": {"fill": {"solid": {"color":true}}}}
+                "state_road_color": {"type": {"fill": {"solid": {"color":true}}}},
+                "psp_color"       : {"type": {"fill": {"solid": {"color":true}}}}
             }
         },
         "map_background": {
@@ -124,7 +124,7 @@
                         {"bind": {"to": "slk_from"}},
                         {"bind": {"to": "slk_to"}},
                         {"bind": {"to": "offset"}},
-                        {"bind": {"to": "colour"}},
+                        {"bind": {"to": "color"}},
                         {"bind": {"to": "tooltips"}}
                     ]
                 }

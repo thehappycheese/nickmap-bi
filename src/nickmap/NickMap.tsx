@@ -1,3 +1,4 @@
+/* eslint-disable no-case-declarations */
 import { Feature, MapBrowserEvent, Map as OpenLayersMap } from 'ol';
 import { Rotate, ScaleLine } from 'ol/control';
 import { platformModifierKeyOnly } from 'ol/events/condition';
@@ -37,11 +38,9 @@ import { FeatureTooltipItem } from "../data_types/FeatureTooltipItems";
 import { road_network_styles } from './layers/road_network';
 import { Extent } from 'ol/extent';
 import { Coordinate } from 'ol/coordinate';
-import { Fill } from 'ol/style';
 import { FeatureLike } from 'ol/Feature';
 import { Geometry } from 'ol/geom';
 import { NonMappableRow } from '../data_types/NonMappableRow';
-import { set } from 'ol/transform';
 
 type NickMapProps = {
     
@@ -56,8 +55,8 @@ type NickMapProps = {
 
     layer_road_network_show_initial:boolean
     layer_road_network_ticks_show_initial:boolean
-    layer_road_network_state_colour:string
-    layer_road_network_psp_colour:string
+    layer_road_network_state_color:string
+    layer_road_network_psp_color:string
 
     layer_raster_brightness:number
     layer_raster_contrast:number
@@ -85,7 +84,7 @@ type NickMapProps = {
     tooltip_service:powerbi.extensibility.ITooltipService
     tooltip_service_wrapper: ITooltipServiceWrapper
 
-    colour_palette_service:powerbi.extensibility.IColorPalette
+    color_palette_service:powerbi.extensibility.IColorPalette
 
 }
 
@@ -122,7 +121,7 @@ export function NickMap(props:NickMapProps){
         style:(item) => new Style({
             stroke:new Stroke({
                 width:item.getProperties()["line_width"],
-                color:item.getProperties()["colour"]
+                color:item.getProperties()["color"]
             })
         })
     }))
@@ -135,7 +134,7 @@ export function NickMap(props:NickMapProps){
             condition:local_platformModifierKeyOnly,
         })
         drag_interaction.setActive(props.allow_drag_box_selection); // not available as a constructor option
-        drag_interaction.on('boxend', event => {
+        drag_interaction.on('boxend', _event => {
             const extent = drag_interaction_ref.current.getGeometry().getExtent();
             let features_within_dragged_box_extent = vector_source_data_ref.current
                 .getFeaturesInExtent(extent)
@@ -187,16 +186,16 @@ export function NickMap(props:NickMapProps){
                 new Style({
                     stroke:new Stroke({
                         width:2.5,
-                        color:item.getProperties()["colour"]
+                        color:item.getProperties()["color"]
                     })
                 })
             ]
         })
-        select_interaction.on("select", e => {
+        select_interaction.on("select", _e => {
             // console.log(`Select Interaction on select_interaction_ref.current.on("select",({selected.length:${e.selected.length}, deselected.length:${e.deselected.length}})=>{})`)
             // NOTE: the event only gives the diff. For the complete list of
             //       selections we need to refer to the feature collection:
-            let selected_items = select_interaction_ref.current.getFeatures().getArray()
+            const selected_items = select_interaction_ref.current.getFeatures().getArray()
             props.selection_manager
             .clear()
             .then(()=>{
@@ -225,7 +224,7 @@ export function NickMap(props:NickMapProps){
     // MAP OBJECT
     // ==========
     const map_ref = useRefFactory<OpenLayersMap>(()=>{
-        let map = new OpenLayersMap({
+        const map = new OpenLayersMap({
             // target:map_root_ref.current,
             controls:[
                 new Rotate(),
@@ -260,24 +259,24 @@ export function NickMap(props:NickMapProps){
             event.preventDefault();
         })
         map.getViewport().addEventListener("drop", function(event){
-            let target:HTMLDivElement = event.target as HTMLDivElement;
+            const target:HTMLDivElement = event.target as HTMLDivElement;
             if (event.dataTransfer?.getData("Text")==="the pegman commeth!"){
-                let rec = target.getBoundingClientRect();
-                let px = [
+                const rec = target.getBoundingClientRect();
+                const px = [
                     event.clientX - rec.left,
                     event.clientY - rec.top
                 ];
-                let loc = map.getCoordinateFromPixel(px) as [number,number]
+                const loc = map.getCoordinateFromPixel(px) as [number,number]
                 goto_google_street_view(loc, props.host);
             }
         });
-        map.on("movestart", event=>{
+        map.on("movestart", _event=>{
             props.tooltip_service.hide({immediately:true, isTouchEvent:false});
         })
         // ========== HOVER TOOLTIP ============
         const show_tooltip = (selected_item:Feature, clientX:number, clientY:number, is_touch:boolean) => {
-            let tooltips:FeatureTooltipItem[] = selected_item.get("tooltips")
-            let selection_id:powerbi.extensibility.ISelectionId = selected_item.get("selection_id")
+            const tooltips:FeatureTooltipItem[] = selected_item.get("tooltips")
+            const selection_id:powerbi.extensibility.ISelectionId = selected_item.get("selection_id")
             if(!(tooltips===undefined || tooltips.length===0)){
                 props.tooltip_service.show({
                     coordinates:[
@@ -351,7 +350,7 @@ export function NickMap(props:NickMapProps){
             layer.__BRIGHTNESS = props.layer_raster_brightness;
             layer.__CONTRAST   = props.layer_raster_contrast;
             layer.__SATURATION  = props.layer_raster_saturation;
-        };
+        }
     },[props.layer_raster_saturation, props.layer_raster_brightness, props.layer_raster_contrast])
     
 
@@ -359,14 +358,14 @@ export function NickMap(props:NickMapProps){
     // ROAD NETWORK STYLE & VISIBILITY
     // ===============================
     useEffect(()=>{
-        road_network_styles["State Road"].getStroke()!.setColor(props.layer_road_network_state_colour)
+        road_network_styles["State Road"].getStroke()!.setColor(props.layer_road_network_state_color)
         layer_state_road.changed()
-    },[props.layer_road_network_state_colour])
+    },[props.layer_road_network_state_color])
 
     useEffect(()=>{
-        road_network_styles["Main Roads Controlled Path"].getStroke()!.setColor(props.layer_road_network_psp_colour)
+        road_network_styles["Main Roads Controlled Path"].getStroke()!.setColor(props.layer_road_network_psp_color)
         layer_state_road.changed()
-    },[props.layer_road_network_psp_colour])
+    },[props.layer_road_network_psp_color])
 
     useEffect(()=>{
         layer_state_road.setVisible(layer_road_network_show);
@@ -442,15 +441,15 @@ export function NickMap(props:NickMapProps){
         road_number = road_number.toUpperCase();
         console.log(`Zoom to ${road_number} ${slk}`)
         set_zoom_to_road_slk_state({"type":"PENDING"})
-        let response = await fetch(
+        const response = await fetch(
             `https://linref.thehappycheese.com/?road=${road_number}&slk=${slk}&f=latlon`,
             {
                 mode:"cors"
             }
         );
         if(response.ok){
-            let response_text = await response.text();
-            let [lat,lon] = response_text.split(",");
+            const response_text = await response.text();
+            const [lat,lon] = response_text.split(",");
             set_view_properties(
                 map_ref.current,
                 18,//props.auto_zoom ? 18 : map_ref.current.getView().getZoom(),
@@ -473,8 +472,8 @@ export function NickMap(props:NickMapProps){
                 props.controls_mode !== "Disabled" &&
                 <NickMapControls
                     on_go_to_google_maps={()=>{
-                        let center = map_ref.current.getView().getCenter();
-                        let zoom = map_ref.current.getView().getZoom();
+                        const center = map_ref.current.getView().getCenter();
+                        const zoom = map_ref.current.getView().getZoom();
                         if(center===undefined || zoom===undefined) return;
                         // TODO: silent failure here is not ok, but seems
                         //       unlikely to happen without lots of other things
@@ -562,10 +561,10 @@ export function NickMap(props:NickMapProps){
 }
 
 
-
 function build_status_display(props:NickMapProps, show_why_cant_map_some_features:()=>void) : React.ReactNode{
     switch(props.feature_loading_state.type){
         case "SUCCESS":
+            
             let message_hit_max_result_count:React.ReactNode = null;
             if(props.feature_collection_request_count===30_000){
                 if(props.show_result_count){
@@ -577,7 +576,7 @@ function build_status_display(props:NickMapProps, show_why_cant_map_some_feature
 
             let message_count_missing_rows:React.ReactNode = null;
             if(props.feature_collection_request_count !== props.feature_collection.features.length){
-                let count_missing_rows = props.feature_collection_request_count-props.feature_collection.features.length;
+                const count_missing_rows = props.feature_collection_request_count-props.feature_collection.features.length;
                 if (count_missing_rows<=0){
                     // show no message, something went badly wrong
                 }else{
@@ -643,7 +642,7 @@ function build_status_display(props:NickMapProps, show_why_cant_map_some_feature
  * it is pretty annoying
  */
 function set_view_properties(map:OpenLayersMap, zoom:number, center:number[]){
-    let view = map.getView();
+    const view = map.getView();
     view.setZoom(zoom);
     view.setCenter(center);
 }
@@ -670,7 +669,7 @@ function render_features_helper(
 ){
     vector_source_data.clear()
     if (feature_collection.features.length > 0){
-        let features = new GeoJSON().readFeatures(feature_collection, {
+        const features = new GeoJSON().readFeatures(feature_collection, {
             featureProjection:"EPSG:3857", // target: openlayers default projection
             dataProjection:"EPSG:4326", // source: geojson exclusively uses WGS84 which is known as 4326 in the EPSG system
         })

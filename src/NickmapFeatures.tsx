@@ -4,12 +4,12 @@ export interface NickmapFeatureCollection {
     type: "FeatureCollection";
     features: {
         type: "Feature";
-        id:string,
+        id: string,
         geometry: {
             type: "MultiLineString";
             coordinates: [number, number][][];
         };
-        properties?: {};
+        properties?: object;
     }[];
 }
 

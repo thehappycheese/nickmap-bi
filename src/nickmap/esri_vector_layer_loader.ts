@@ -50,15 +50,15 @@ interface EsriJSONFeatureSet extends EsriJSONMZSpatial{
     features:EsriJSONFeature[]
     exceededTransferLimit?:boolean
 }
-interface EsriJSONFeatureLayerField {
-    name:string
-    alias:string
-    type:EsriJSONFieldType
-}
-interface EsriJSONFeatureLayer {
-    type:"Feature Layer",
-    fields:EsriJSONFeatureLayerField[]
-}
+// interface EsriJSONFeatureLayerField {
+//     name:string
+//     alias:string
+//     type:EsriJSONFieldType
+// }
+// interface EsriJSONFeatureLayer {
+//     type:"Feature Layer",
+//     fields:EsriJSONFeatureLayerField[]
+// }
 
 export class esri_vector_source extends VectorSource {
 
@@ -89,7 +89,7 @@ export class esri_vector_source extends VectorSource {
 			throw new Error("service_url not provided.")
 		}
 		this.setLoader(this.esri_vector_loader.bind(this));
-		let params = new URLSearchParams({
+		const params = new URLSearchParams({
 			f: "json",
 			returnGeometry: "true",
 			outFields: "*",
@@ -106,7 +106,7 @@ export class esri_vector_source extends VectorSource {
 	}
 
 	esri_vector_loader(arg_extent:Extent, resolution:number, projection:Projection) {
-		var url =
+		const url =
 			this.fixed_url_component + '&' + new URLSearchParams({
 				geometry: JSON.stringify({
 					xmin: arg_extent[0],
@@ -150,7 +150,7 @@ export class esri_vector_source extends VectorSource {
 	// }
 
 	esri_vector_load_part(url:string, projection:Projection, offset:number) {
-		let complete_url = url + "&resultOffset=" + offset
+		const complete_url = url + "&resultOffset=" + offset
 		fetch(complete_url,
 			{
 				method: "GET",
@@ -181,7 +181,7 @@ export class esri_vector_source extends VectorSource {
 				if (this.fields === undefined) {
 					this.fields = json.fields;
 				}
-				let features = esri_vector_source.esri_json_format.readFeatures(json, { featureProjection: projection });
+				const features = esri_vector_source.esri_json_format.readFeatures(json, { featureProjection: projection });
 				features.forEach((item => {
 					//item.set("get_nice_properties", () => this.transform_feature_properties(item.getProperties()));
 					item.setId(item.getProperties()["OBJECTID"])

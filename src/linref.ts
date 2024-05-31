@@ -13,7 +13,7 @@ const CWY_LOOKUP = {
 } as const;
 
 function binary_encode_request(road: string, slk_from: number, slk_to: number, offset: number, cwy: string) {
-    let cwy_sorted = Array.from(cwy.toUpperCase()).sort().join("");
+    const cwy_sorted = Array.from(cwy.toUpperCase()).sort().join("");
     let cwy_encoded: typeof CWY_LOOKUP[keyof typeof CWY_LOOKUP];
     if (!is_in(cwy_sorted, CWY_LOOKUP)) {
         cwy_encoded = CWY_LOOKUP["LRS"];
@@ -21,16 +21,16 @@ function binary_encode_request(road: string, slk_from: number, slk_to: number, o
         cwy_encoded = CWY_LOOKUP[cwy_sorted];
     }
 
-    let text_encoder = new TextEncoder();
-    let road_bytes = text_encoder.encode(road);
+    const text_encoder = new TextEncoder();
+    const road_bytes = text_encoder.encode(road);
 
-    let buffer = new ArrayBuffer(1 + road_bytes.length + 4 + 4 + 4 + 1);
+    const buffer = new ArrayBuffer(1 + road_bytes.length + 4 + 4 + 4 + 1);
 
-    let road_name_chunk = new Uint8Array(buffer, 0, 1 + road_bytes.length);
+    const road_name_chunk = new Uint8Array(buffer, 0, 1 + road_bytes.length);
     road_name_chunk[0] = road_bytes.length;
     road_name_chunk.set(road_bytes, 1);
 
-    let data_view = new DataView(buffer, 1 + road_bytes.length);
+    const data_view = new DataView(buffer, 1 + road_bytes.length);
     data_view.setFloat32(0, Math.min(slk_from, slk_to), true) // LITTLE ENDIAN
     data_view.setFloat32(4, Math.max(slk_from, slk_to), true) // LITTLE ENDIAN
     data_view.setFloat32(8, offset, true) // LITTLE ENDIAN
@@ -64,7 +64,7 @@ let x_request_id_global_latest: number = 0;
  * for georeferencing.
  *
  * This function iterates over the rows of the input DataViewTable, converting each row 
- * into an object with properties for road number, start and end SLK, offset, CWY, colour,
+ * into an object with properties for road number, start and end SLK, offset, CWY, color,
  * line width, selection_id, and tooltips. These objects can be used as input for the 
  * batch_requests function, which georeferences these road segments into a FeatureCollection 
  * suitable for display in OpenLayers.
@@ -72,7 +72,7 @@ let x_request_id_global_latest: number = 0;
  * @param data_view_table - The DataViewTable from PowerBI that contains the input data.
  * @param host - The PowerBI visual host, used for creating selection IDs.
  * @param default_line_width - The default line width to use for road segments.
- * @param default_line_color - The default line colour to use for road segments.
+ * @param default_line_color - The default line color to use for road segments.
  *
  * @returns An array of objects representing road segments, suitable for input to the 
  *          batch_requests function for georeferencing.
@@ -94,21 +94,19 @@ export async function batch_requests(
             features: []
         }
     }
-    let request_body_parts: Uint8Array[] = [];
+    const request_body_parts: Uint8Array[] = [];
     let request_body_byte_length = 0;
-    let request_feature_length = 0;
     try {
-        for (let { road_number: road, slk_from, slk_to, offset = 0, cwy = "LRS" } of road_segments) {
-            let request_bytes = binary_encode_request(road, slk_from, slk_to, offset * offset_multiplier, cwy);
+        for (const { road_number: road, slk_from, slk_to, offset = 0, cwy = "LRS" } of road_segments) {
+            const request_bytes = binary_encode_request(road, slk_from, slk_to, offset * offset_multiplier, cwy);
             request_body_byte_length += request_bytes.byteLength;
             request_body_parts.push(request_bytes);
-            request_feature_length += 1;
         }
     } catch (e) {
         throw new BatchRequestBinaryEncodingError()
     }
     // Pack all queries into a single byte array:
-    let request_body = new Uint8Array(request_body_byte_length);
+    const request_body = new Uint8Array(request_body_byte_length);
     request_body_parts.reduce((offset, byte_array) => {
         request_body.set(byte_array, offset);
         return offset + byte_array.byteLength;
@@ -117,7 +115,7 @@ export async function batch_requests(
     )
 
     // Send the request to the server
-    let x_request_id_request: number = (new Date()).getTime()
+    const x_request_id_request: number = (new Date()).getTime()
     if (x_request_id_request < x_request_id_global_latest) {
         console.log("BatchRequestOutdatedBeforeFetchError")
         throw new BatchRequestOutdatedBeforeFetchError("BatchRequestOutdatedBeforeFetchError")
@@ -127,7 +125,7 @@ export async function batch_requests(
 
     let response: Response;
     try {
-        let fetch_promise = fetch_with_abort(
+        const fetch_promise = fetch_with_abort(
             //"https://linref.thehappycheese.com/batch/",
             "https://nicklinref-dev-mrwauedevnmbascr.australiaeast.azurecontainer.io/batch/",
             {
@@ -157,7 +155,7 @@ export async function batch_requests(
     // retrieve x-request-id header from response
     let x_request_id_response: number | undefined = undefined;
     if (response.headers.has("x-request-id")) {
-        let header_value = response.headers.get("x-request-id");
+        const header_value = response.headers.get("x-request-id");
         if (header_value === null) {
             // skip any checks
         }else{
@@ -189,8 +187,8 @@ export async function batch_requests(
     }
 
     // TODO: lift the next step so we can combine it with the tep where we append the feature properties?
-    let features: (Response_Feature_Type | null)[] = [];
-    for (let multi_line_string_coordinates of response_json) {
+    const features: (Response_Feature_Type | null)[] = [];
+    for (const multi_line_string_coordinates of response_json) {
         features.push(multi_line_string_coordinates ? {
             type: "Feature",
             geometry: {
@@ -199,7 +197,7 @@ export async function batch_requests(
             }
         } : null);
     }
-    let result: {
+    const result: {
         type: "FeatureCollection",
         features: (Response_Feature_Type | null)[]
     } = {

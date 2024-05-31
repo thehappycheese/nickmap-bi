@@ -38,7 +38,7 @@ export class Visual implements IVisual {
     private tooltip_service: powerbi.extensibility.ITooltipService;
     private tooltip_service_wrapper: ITooltipServiceWrapper;
 
-    private colour_palette_service: powerbi.extensibility.IColorPalette;
+    private color_palette_service: powerbi.extensibility.IColorPalette;
 
     constructor(options?: VisualConstructorOptions) {
         
@@ -53,7 +53,7 @@ export class Visual implements IVisual {
             options.host.tooltipService,
             options.element
         );
-        this.colour_palette_service = options.host.colorPalette;
+        this.color_palette_service = options.host.colorPalette;
         this.formattingSettingsService = new FormattingSettingsService();
         // attempt to set default settings?
         this.feature_collection = {type:"FeatureCollection", features:[]};
@@ -73,7 +73,7 @@ export class Visual implements IVisual {
         }
 
         // Extract table Data View
-        let dataview_table = options.dataViews[0].table;
+        const dataview_table = options.dataViews[0].table;
         
         // TODO: allow transform_data_view to return array
         // TODO: allow transform_data_view to filter
@@ -128,7 +128,7 @@ export class Visual implements IVisual {
                 dataview_table,
                 this.host,
                 this.formattingSettings.line_format_settings.default_line_width.value,
-                this.formattingSettings.line_format_settings.default_line_colour.value.value,
+                this.formattingSettings.line_format_settings.default_line_color.value.value,
             )
         }catch(e){
             console.log("Error transforming powerbi data into table")
@@ -161,8 +161,8 @@ export class Visual implements IVisual {
             this.formattingSettings.advanced_settings.offset_multiplier.value
         ).then(
             (returned_features)=>{
-                let non_mappable_rows:NonMappableRow[] = []
-                let features_filtered_and_coloured:NickmapFeatureCollection = {
+                const non_mappable_rows:NonMappableRow[] = []
+                const features_filtered_and_colored:NickmapFeatureCollection = {
                     type     : "FeatureCollection",
                     features : []
                 }
@@ -170,13 +170,13 @@ export class Visual implements IVisual {
                 zip_arrays(input_properties, returned_features.features).forEach(
                     ([input_row, feature], row_index)=>{
                         if (feature && feature?.geometry?.coordinates && feature?.geometry?.coordinates.length !== 0){
-                            let selection_key = input_row.selection_id.getKey();
-                            features_filtered_and_coloured.features.push(
+                            const selection_key = input_row.selection_id.getKey();
+                            features_filtered_and_colored.features.push(
                                 {
                                     ...feature,
                                     id : selection_key,
                                     properties:{
-                                        colour       : input_row.colour,//this.colour_palette_service.getColor(input_row.colour).value,//input_row.colour,
+                                        color       : input_row.color,//this.color_palette_service.getColor(input_row.color).value,//input_row.color,
                                         line_width   : input_row.line_width,
                                         selection_id : input_row.selection_id,
                                         tooltips     : input_row.tooltips,
@@ -184,7 +184,7 @@ export class Visual implements IVisual {
                                 }
                             )
                         }else{
-                            let non_mappable_row:NonMappableRow = {
+                            const non_mappable_row:NonMappableRow = {
                                 row_number:row_index+1,
                                 selection_id:input_row.selection_id,
                                 reason:"unknown",
@@ -210,7 +210,7 @@ export class Visual implements IVisual {
                 );
                 this.non_mappable_rows = non_mappable_rows;
                 this.feature_loading_state = {type:"SUCCESS"}
-                this.feature_collection = features_filtered_and_coloured;
+                this.feature_collection = features_filtered_and_colored;
             }
         ).catch(
             failure=>{
@@ -234,11 +234,11 @@ export class Visual implements IVisual {
     public react_render_call(){
         if(!this.formattingSettings) return;
 
-        let map_background_settings = this.formattingSettings.map_background_settings
-        let road_network_settings   = this.formattingSettings.road_network_settings
-        let map_behavior_settings = this.formattingSettings.map_behavior_settings
-        let map_status_bar_settings = this.formattingSettings.map_status_bar_settings;
-        let advanced_settings      = this.formattingSettings.advanced_settings
+        const map_background_settings = this.formattingSettings.map_background_settings;
+        const road_network_settings   = this.formattingSettings.road_network_settings;
+        const map_behavior_settings   = this.formattingSettings.map_behavior_settings;
+        const map_status_bar_settings = this.formattingSettings.map_status_bar_settings;
+        const advanced_settings       = this.formattingSettings.advanced_settings;
         
         ReactDOM.render(
             <NickMap
@@ -253,8 +253,8 @@ export class Visual implements IVisual {
 
                 layer_road_network_show_initial       = {road_network_settings.show.value}
                 layer_road_network_ticks_show_initial = {road_network_settings.show_ticks.value}
-                layer_road_network_state_colour       = {road_network_settings.state_road_colour.value.value}
-                layer_road_network_psp_colour         = {road_network_settings.psp_colour.value.value}
+                layer_road_network_state_color       = {road_network_settings.state_road_color.value.value}
+                layer_road_network_psp_color         = {road_network_settings.psp_color.value.value}
 
                 layer_raster_brightness               = {map_background_settings.osm_brightness.value}
                 layer_raster_contrast                 = {map_background_settings.osm_contrast.value}
@@ -279,7 +279,7 @@ export class Visual implements IVisual {
                 tooltip_service                       = {this.tooltip_service}
                 tooltip_service_wrapper               = {this.tooltip_service_wrapper}
 
-                colour_palette_service                 = {this.colour_palette_service}
+                color_palette_service                 = {this.color_palette_service}
             />,
             this.react_root
         )
