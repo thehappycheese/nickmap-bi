@@ -3,14 +3,14 @@ import { formattingSettings } from "powerbi-visuals-utils-formattingmodel";
 import powerbi from "powerbi-visuals-api";
 
 
-class LineFormatSettings extends formattingSettings.Card {
+class LineFormatSettings extends formattingSettings.CardGroupEntity  {
     name        = "line_format";
     displayName = "Line Format";
 
-    default_line_colour = new formattingSettings.ColorPicker({
-        name        : "default_line_colour",
-        displayName : "Default Line Colour",
-        description : "This is the colour that will be used when the Colour field well is not populated",
+    default_line_color = new formattingSettings.ColorPicker({
+        name        : "default_line_color",
+        displayName : "Default Line Color",
+        description : "This is the color that will be used when the Color field well is not populated",
         value       : { value: "red" },
     });
     default_line_width = new formattingSettings.NumUpDown({
@@ -27,12 +27,12 @@ class LineFormatSettings extends formattingSettings.Card {
     });
     
     slices = [
-        this.default_line_colour,
+        this.default_line_color,
         this.default_line_width,
     ]
 }
 
-class RoadNetworkSettings extends formattingSettings.Card {
+class RoadNetworkSettings extends formattingSettings.CardGroupEntity {
     name = "road_network";
     displayName = "Road Network";
     show = new formattingSettings.ToggleSwitch({
@@ -47,28 +47,28 @@ class RoadNetworkSettings extends formattingSettings.Card {
         description : "Controls the default visibility of this layer when the report is opened.",
         value       : true
     });
-    state_road_colour = new formattingSettings.ColorPicker({
-        name        : "state_road_colour",
-        displayName : "State Road Colour",
-        description : "The colour to use for lines representing a State Owned Road",
+    state_road_color = new formattingSettings.ColorPicker({
+        name        : "state_road_color",
+        displayName : "State Road Color",
+        description : "The color to use for lines representing a State Owned Road",
         value       : { value: "rgb(50, 100, 100)" },
     });
-    psp_colour = new formattingSettings.ColorPicker({
-        name        : "psp_colour",
-        displayName : "Principal Shared Path Colour",
-        description : "The colour to use for lines representing a State Owned Shared Path",
+    psp_color = new formattingSettings.ColorPicker({
+        name        : "psp_color",
+        displayName : "Principal Shared Path Color",
+        description : "The color to use for lines representing a State Owned Shared Path",
         value       : { value: "rgb(128, 0, 128)", },
     });
     slices = [
         this.show,
         this.show_ticks,
-        this.state_road_colour,
-        this.psp_colour
+        this.state_road_color,
+        this.psp_color
     ]
 }
 
 
-class MapBackgroundSettings extends formattingSettings.Card {
+class MapBackgroundSettings extends formattingSettings.CardGroupEntity {
     name = "map_background";
     displayName = "Map Background";
     url_wmts = new formattingSettings.TextInput({
@@ -149,7 +149,7 @@ const controls_mode_enum_options:ControlsMode[] = [
     {"displayName": "Expanded",  "value": "Expanded" }
 ]
 
-class MapBehaviorSettings extends formattingSettings.Card {
+class MapBehaviorSettings extends formattingSettings.CardGroupEntity {
     name = "map_behavior";
     displayName = "Map Behavior";
 
@@ -185,7 +185,7 @@ class MapBehaviorSettings extends formattingSettings.Card {
     ]
 }
 
-class MapStatusBarSettings extends formattingSettings.Card {
+class MapStatusBarSettings extends formattingSettings.CardGroupEntity {
     name = "map_statusbar";
     displayName = "Status Bar";
 
@@ -209,7 +209,7 @@ class MapStatusBarSettings extends formattingSettings.Card {
     ]
 }
 
-export class AdvancedSettings extends formattingSettings.Card {
+export class AdvancedSettings extends formattingSettings.CardGroupEntity {
     name        = "advanced_settings";
     displayName = "Advanced Settings";
 
