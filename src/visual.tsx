@@ -25,7 +25,7 @@ import { NonMappableRow } from "./data_types/NonMappableRow";
 
 export class Visual implements IVisual {
     private react_root: HTMLElement;
-    private formattingSettings: NickMapBIFormattingSettings;
+    private formattingSettings?: NickMapBIFormattingSettings;
     private formattingSettingsService: FormattingSettingsService;
     private host: powerbi.extensibility.visual.IVisualHost;
     private non_mappable_rows: NonMappableRow[] = [];
@@ -56,17 +56,14 @@ export class Visual implements IVisual {
         this.colour_palette_service = options.host.colorPalette;
         this.formattingSettingsService = new FormattingSettingsService();
         // attempt to set default settings?
-        this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(NickMapBIFormattingSettings, []);
         this.feature_collection = {type:"FeatureCollection", features:[]};
     }
 
     public update(options: VisualUpdateOptions) {
         console.log('Visual update', options);
         
-
-
         // Extract settings from dataview
-        this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(NickMapBIFormattingSettings, options.dataViews);
+        this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(NickMapBIFormattingSettings, options.dataViews[0]);
 
         // Check dataview is present
         if (options.dataViews.length==0 || !options.dataViews[0].table) {
@@ -235,7 +232,8 @@ export class Visual implements IVisual {
 
     
     public react_render_call(){
-        
+        if(!this.formattingSettings) return;
+
         let map_background_settings = this.formattingSettings.map_background_settings
         let road_network_settings   = this.formattingSettings.road_network_settings
         let map_behavior_settings = this.formattingSettings.map_behavior_settings
@@ -289,6 +287,6 @@ export class Visual implements IVisual {
 
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {
-        return this.formattingSettingsService.buildFormattingModel(this.formattingSettings);
+        return this.formattingSettingsService.buildFormattingModel(this.formattingSettings as any);
     }
 }

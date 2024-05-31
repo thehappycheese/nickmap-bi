@@ -17,6 +17,7 @@ import { createXYZ } from 'ol/tilegrid';
 import urljoin from 'url-join';
 import { Extent } from 'ol/extent';
 import { Projection } from 'ol/proj';
+import { FeatureLike } from 'ol/Feature';
 
 interface EsriJSONMZSpatial {
     hasZ?:boolean
@@ -76,7 +77,7 @@ export class esri_vector_source extends VectorSource {
 		fetch_args?: RequestInit;
 		url_params?: Record<string, string>;
 		tile_size?: number;
-		args?: VectorSourceConstructorOptions;
+		args?: VectorSourceConstructorOptions<FeatureLike>;
 	}) {
 		super({
 			format: esri_vector_source.esri_json_format,

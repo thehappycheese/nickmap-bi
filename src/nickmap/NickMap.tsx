@@ -1,12 +1,11 @@
 import { Feature, MapBrowserEvent, Map as OpenLayersMap } from 'ol';
-import Collection from 'ol/Collection';
 import { Rotate, ScaleLine } from 'ol/control';
 import { platformModifierKeyOnly } from 'ol/events/condition';
 import GeoJSON from 'ol/format/GeoJSON';
 import { DragBox, Select, defaults as default_interactions} from 'ol/interaction';
 import { Group as LayerGroup } from 'ol/layer';
 import { Vector as VectorLayer} from 'ol/layer';
-import { clearUserProjection, fromLonLat } from 'ol/proj';
+import { fromLonLat } from 'ol/proj';
 import VectorSource from 'ol/source/Vector';
 import Stroke from 'ol/style/Stroke';
 import Style from 'ol/style/Style';
@@ -337,7 +336,7 @@ export function NickMap(props:NickMapProps){
     // SLK TICKS LAYER
     // Must be created after map due to annoying API problem
     // =====================================================
-    const layer_state_road_ticks_ref = useRefFactory<VectorLayer<VectorSource>>(()=>{
+    const layer_state_road_ticks_ref = useRefFactory<VectorLayer<any>>(()=>{
         const layer_state_road_ticks = get_layer_state_road_ticks(map_ref.current);
         road_network_layers_ref.current.getLayers().push(layer_state_road_ticks)
         return layer_state_road_ticks
@@ -360,12 +359,12 @@ export function NickMap(props:NickMapProps){
     // ROAD NETWORK STYLE & VISIBILITY
     // ===============================
     useEffect(()=>{
-        road_network_styles["State Road"].getStroke().setColor(props.layer_road_network_state_colour)
+        road_network_styles["State Road"].getStroke()!.setColor(props.layer_road_network_state_colour)
         layer_state_road.changed()
     },[props.layer_road_network_state_colour])
 
     useEffect(()=>{
-        road_network_styles["Main Roads Controlled Path"].getStroke().setColor(props.layer_road_network_psp_colour)
+        road_network_styles["Main Roads Controlled Path"].getStroke()!.setColor(props.layer_road_network_psp_colour)
         layer_state_road.changed()
     },[props.layer_road_network_psp_colour])
 

@@ -23,7 +23,7 @@ import { FeatureLike } from 'ol/Feature';
 // }
 
 
-export const road_network_styles:Record<string, Style> = {
+export const road_network_styles:Readonly<Record<string, Style>> = {
 	'Main Roads Controlled Path': new Style({
 		stroke: new Stroke({
 			color: 'rgba(100, 40, 100)',
@@ -201,8 +201,8 @@ let custom_renderer_with_SLK_ticks:(map:OpenLayersMap)=>RenderFunction = (map:Op
 	var renderContext = toContext(context);
 	(renderContext as any).extent_ = [0, 0, canvas_size_x, canvas_size_y];  // manual ovveride extent calculation to fix problems when devicePixleRatio is not == 1
 	renderContext.setFillStrokeStyle(
-		road_network_styles[network_type].getFill(),
-		road_network_styles[network_type].getStroke()
+		road_network_styles[network_type].getFill()!,
+		road_network_styles[network_type].getStroke()!
 	);
 	var geometry: LineString = state.geometry.clone() as LineString;
 	for (let {item, label, label_rotation} of tickmarks) {
