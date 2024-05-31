@@ -6,6 +6,7 @@
 - Address many annoying eslint problems
 - Adopt american spelling of Color to avoid insanity with tooling
   and libraries
+- Finish migration to React 18
 
 ## [4.2.3] - UNRELEASED - 2023-08-02
 

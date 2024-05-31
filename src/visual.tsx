@@ -10,7 +10,7 @@ import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 import IVisual = powerbi.extensibility.visual.IVisual;
 
 import * as React from "react";
-import * as ReactDOM from "react-dom";
+import { createRoot, Root } from 'react-dom/client';
 
 
 import { ControlsMode, NickMapBIFormattingSettings } from "./settings";
@@ -24,7 +24,8 @@ import { NonMappableRow } from "./data_types/NonMappableRow";
 
 
 export class Visual implements IVisual {
-    private react_root: HTMLElement;
+    private react_root_element: HTMLElement;
+    private react_root: Root;
     private formattingSettings?: NickMapBIFormattingSettings;
     private formattingSettingsService: FormattingSettingsService;
     private host: powerbi.extensibility.visual.IVisualHost;
@@ -46,7 +47,8 @@ export class Visual implements IVisual {
             throw new Error("Visual constructed without DOM???")
         }
         this.host = options.host;
-        this.react_root = options.element;
+        this.react_root_element = options.element;
+        this.react_root = createRoot(this.react_root_element); 
         this.selection_manager = this.host.createSelectionManager();
         this.tooltip_service = options.host.tooltipService
         this.tooltip_service_wrapper = createTooltipServiceWrapper(
@@ -57,6 +59,7 @@ export class Visual implements IVisual {
         this.formattingSettingsService = new FormattingSettingsService();
         // attempt to set default settings?
         this.feature_collection = {type:"FeatureCollection", features:[]};
+
     }
 
     public update(options: VisualUpdateOptions) {
@@ -240,7 +243,7 @@ export class Visual implements IVisual {
         const map_status_bar_settings = this.formattingSettings.map_status_bar_settings;
         const advanced_settings       = this.formattingSettings.advanced_settings;
         
-        ReactDOM.render(
+        this.react_root.render(
             <NickMap
                 host={this.host}
                 version_node                          = {<>v4.2.3<br/>NickMapBI</>}
@@ -280,8 +283,7 @@ export class Visual implements IVisual {
                 tooltip_service_wrapper               = {this.tooltip_service_wrapper}
 
                 color_palette_service                 = {this.color_palette_service}
-            />,
-            this.react_root
+            />
         )
     }
 
