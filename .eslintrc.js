@@ -16,5 +16,9 @@ module.exports = {
     extends: [
         "plugin:powerbi-visuals/recommended"
     ],
-    rules: {}
+    rules: {
+        "max-lines-per-function": ["error", { "max": 1000 }],
+        "no-unused-vars": ["error", { "argsIgnorePattern": "^_"}],
+        "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_"}],
+    }
 };
