@@ -246,7 +246,7 @@ export class Visual implements IVisual {
         this.react_root.render(
             <NickMap
                 host={this.host}
-                version_node                          = {<>v4.4.0<br/>NickMapBI test</>}
+                version_node                          = {<>v4.4.0<br/>NickMapBI</>}
 
                 layer_arcgis_rest_url                 = {map_background_settings.url_tile_arcgis.value}
                 layer_arcgis_rest_show_initial        = {map_background_settings.url_tile_arcgis_show.value}
