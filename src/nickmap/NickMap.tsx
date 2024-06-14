@@ -442,9 +442,10 @@ export function NickMap(props:NickMapProps){
         console.log(`Zoom to ${road_number} ${slk}`)
         set_zoom_to_road_slk_state({"type":"PENDING"})
         const response = await fetch(
-            `https://linref.thehappycheese.com/?road=${road_number}&slk=${slk}&f=latlon`,
+            //`https://linref.thehappycheese.com/?road=${road_number}&slk=${slk}&f=latlon`,
+            `"https://nicklinref-dev-mrwauedevnmbascrlabod.australiaeast.azurecontainer.io/?road=${road_number}&slk=${slk}&f=latlon`,
             {
-                mode:"cors"
+                //mode:"cors"
             }
         );
         if(response.ok){
