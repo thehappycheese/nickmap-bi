@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.4.2.0] - 2023-06-17
+
+- Fixed broken visual settings.
+- Added new setting under Advanced Settings named `Backend URL`. This must be a
+  URL with a `/batch` and `line` endpoint that accept `POST` requests as described in the [readme](readme.md)
+
+## [4.4.1.0] - UNREALSED
+
+- Update visual version number display in the bottom right.
+
+## [4.4.0.0] - UNREALSED
+
+- Update backend
+
 ## [4.3.0.0] - UNRELEASED - 2024-05-31
 
 - Bump version of all dependencies
