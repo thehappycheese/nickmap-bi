@@ -246,7 +246,7 @@ export class Visual implements IVisual {
         this.react_root.render(
             <NickMap
                 host={this.host}
-                version_node                          = {<>v4.4.1.0<br/>NickMapBI</>}
+                version_node                          = {<>v4.4.2.0<br/>NickMapBI</>}
 
                 layer_arcgis_rest_url                 = {map_background_settings.url_tile_arcgis.value}
                 layer_arcgis_rest_show_initial        = {map_background_settings.url_tile_arcgis_show.value}
@@ -256,8 +256,8 @@ export class Visual implements IVisual {
 
                 layer_road_network_show_initial       = {road_network_settings.show.value}
                 layer_road_network_ticks_show_initial = {road_network_settings.show_ticks.value}
-                layer_road_network_state_color       = {road_network_settings.state_road_color.value.value}
-                layer_road_network_psp_color         = {road_network_settings.psp_color.value.value}
+                layer_road_network_state_color        = {road_network_settings.state_road_color.value.value}
+                layer_road_network_psp_color          = {road_network_settings.psp_color.value.value}
 
                 layer_raster_brightness               = {map_background_settings.osm_brightness.value}
                 layer_raster_contrast                 = {map_background_settings.osm_contrast.value}

@@ -126,8 +126,6 @@ export async function batch_requests(
     let response: Response;
     try {
         const fetch_promise = fetch_with_abort(
-            //"https://linref.thehappycheese.com/batch/",
-            //"https://nicklinref-dev-mrwauedevnmbascr.australiaeast.azurecontainer.io/batch/",
             "https://nicklinref-dev-mrwauedevnmbascrlabod.australiaeast.azurecontainer.io/batch/",
             {
                 method: "POST",

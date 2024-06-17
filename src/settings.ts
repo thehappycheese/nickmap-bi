@@ -3,7 +3,7 @@ import { formattingSettings } from "powerbi-visuals-utils-formattingmodel";
 import powerbi from "powerbi-visuals-api";
 
 
-class LineFormatSettings extends formattingSettings.CardGroupEntity  {
+class LineFormatSettings extends formattingSettings.SimpleCard  {
     name        = "line_format";
     displayName = "Line Format";
 
@@ -32,7 +32,7 @@ class LineFormatSettings extends formattingSettings.CardGroupEntity  {
     ]
 }
 
-class RoadNetworkSettings extends formattingSettings.CardGroupEntity {
+class RoadNetworkSettings extends formattingSettings.SimpleCard {
     name = "road_network";
     displayName = "Road Network";
     show = new formattingSettings.ToggleSwitch({
@@ -68,7 +68,7 @@ class RoadNetworkSettings extends formattingSettings.CardGroupEntity {
 }
 
 
-class MapBackgroundSettings extends formattingSettings.CardGroupEntity {
+class MapBackgroundSettings extends formattingSettings.SimpleCard {
     name = "map_background";
     displayName = "Map Background";
     url_wmts = new formattingSettings.TextInput({
@@ -149,7 +149,7 @@ const controls_mode_enum_options:ControlsMode[] = [
     {"displayName": "Expanded",  "value": "Expanded" }
 ]
 
-class MapBehaviorSettings extends formattingSettings.CardGroupEntity {
+class MapBehaviorSettings extends formattingSettings.SimpleCard {
     name = "map_behavior";
     displayName = "Map Behavior";
 
@@ -185,7 +185,7 @@ class MapBehaviorSettings extends formattingSettings.CardGroupEntity {
     ]
 }
 
-class MapStatusBarSettings extends formattingSettings.CardGroupEntity {
+class MapStatusBarSettings extends formattingSettings.SimpleCard {
     name = "map_statusbar";
     displayName = "Status Bar";
 
@@ -209,7 +209,7 @@ class MapStatusBarSettings extends formattingSettings.CardGroupEntity {
     ]
 }
 
-export class AdvancedSettings extends formattingSettings.CardGroupEntity {
+export class AdvancedSettings extends formattingSettings.SimpleCard {
     name        = "advanced_settings";
     displayName = "Advanced Settings";
 
