@@ -11,6 +11,7 @@ import VectorSource from 'ol/source/Vector';
 import Stroke from 'ol/style/Stroke';
 import Style from 'ol/style/Style';
 import View from 'ol/View';
+import {point_request} from '../linref'
 
 import powerbi from "powerbi-visuals-api";
 
@@ -70,6 +71,7 @@ type NickMapProps = {
     show_result_count:boolean
 
     allow_drag_box_selection:boolean
+    backend_url:string
 
     feature_collection:NickmapFeatureCollection
     feature_collection_request_count:number
@@ -441,16 +443,7 @@ export function NickMap(props:NickMapProps){
         road_number = road_number.toUpperCase();
         console.log(`Zoom to ${road_number} ${slk}`)
         set_zoom_to_road_slk_state({"type":"PENDING"})
-        const response = await fetch(
-            //`https://linref.thehappycheese.com/?road=${road_number}&slk=${slk}&f=latlon`,
-            "https://nicklinref-dev-mrwauedevnmbascrlabod.australiaeast.azurecontainer.io/point",
-            {
-                mode:"cors",
-                headers:{ "content-type":"application/json" },
-                method: "POST",
-                body: JSON.stringify({road:road_number, slk, f:"latlon"})                
-            }
-        );
+        const response = await point_request(road_number, slk, props.backend_url);
         if(response.ok){
             const response_text = await response.text();
             const [lat,lon] = response_text.split(",");

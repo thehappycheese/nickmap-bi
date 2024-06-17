@@ -237,10 +237,19 @@ export class AdvancedSettings extends formattingSettings.SimpleCard {
         value       : false,
     });
 
+    backend_url = new formattingSettings.TextInput({
+        name        : "backend_url",
+        displayName : "Backend URL",
+        description : "The server url being used to fetch geometry. it must have a /batch/ and /line/ endpoint that accept POST requests in the format described by the documentation.",
+        placeholder : "https://...",
+        value       : "https://nicklinref-dev-mrwauedevnmbascrlabod.australiaeast.azurecontainer.io/",
+    });
+
     slices = [
         this.warning_note,
         this.allow_drag_box_selection,
         this.offset_multiplier,
+        this.backend_url,
     ]
 }
 

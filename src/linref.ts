@@ -78,6 +78,24 @@ let x_request_id_global_latest: number = 0;
  *          batch_requests function for georeferencing.
  */
 
+export async function point_request(road_number:string, slk:number, backend_url:string){
+    let point_endpoint = backend_url.trim();
+    if(!point_endpoint.endsWith("/")){
+        point_endpoint = point_endpoint+"/point"
+    }else{
+        point_endpoint = point_endpoint+"point"
+    }
+    return fetch(
+        point_endpoint,
+        {
+            mode:"cors",
+            headers:{ "content-type":"application/json" },
+            method: "POST",
+            body: JSON.stringify({road:road_number, slk, f:"latlon"})                
+        }
+    );
+}
+
 export async function batch_requests(
     road_segments: {
         road_number: string,
@@ -86,7 +104,8 @@ export async function batch_requests(
         offset?: number,
         cwy?: string
     }[],
-    offset_multiplier: number
+    offset_multiplier: number,
+    backend_url: string,
 ): Promise<NickmapFeatureCollection_ServerResponse> {
     if (road_segments.length === 0) {
         return {
@@ -123,10 +142,18 @@ export async function batch_requests(
     // set the latest request
     x_request_id_global_latest = x_request_id_request;
 
+    let batch_endpoint = backend_url.trim();
+    if(!batch_endpoint.endsWith("/")){
+        batch_endpoint = batch_endpoint+"/batch"
+    }else{
+        batch_endpoint = batch_endpoint+"batch"
+    }
+
+
     let response: Response;
     try {
         const fetch_promise = fetch_with_abort(
-            "https://nicklinref-dev-mrwauedevnmbascrlabod.australiaeast.azurecontainer.io/batch/",
+            batch_endpoint,
             {
                 method: "POST",
                 body: request_body,

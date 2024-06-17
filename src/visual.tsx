@@ -161,7 +161,8 @@ export class Visual implements IVisual {
         }
         batch_requests(
             input_properties,
-            this.formattingSettings.advanced_settings.offset_multiplier.value
+            this.formattingSettings.advanced_settings.offset_multiplier.value,
+            this.formattingSettings.advanced_settings.backend_url.value
         ).then(
             (returned_features)=>{
                 const non_mappable_rows:NonMappableRow[] = []
@@ -271,6 +272,7 @@ export class Visual implements IVisual {
                 show_result_count                     = {map_status_bar_settings.show_result_count.value}
 
                 allow_drag_box_selection              = {advanced_settings.allow_drag_box_selection.value}
+                backend_url                           = {advanced_settings.backend_url.value}
 
                 feature_collection                    = {this.feature_collection}
                 feature_collection_request_count      = {this.features_requested_count}

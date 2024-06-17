@@ -107,7 +107,8 @@
         "advanced_settings":{
             "properties":{
                 "offset_multiplier"  : {"type": {"numeric": true}},
-                "allow_drag_box_selection": {"type":{"bool": true}}
+                "allow_drag_box_selection": {"type":{"bool": true}},
+                "backend_url":{"type": {"text": true}}
             }
         }
     },

@@ -1,8 +1,8 @@
 # NickMapBI <!-- omit in toc -->
 
-Link to releases: [Releases](https://github.com/thehappycheese/nickmap-bi/releases)
+[Releases](https://github.com/thehappycheese/nickmap-bi/releases)
 
-Link to change log: [Change Log](./changelog.md)
+[Change Log](./changelog.md)
 
 - [1. Introduction](#1-introduction)
   - [1.1. Installation](#11-installation)
@@ -101,6 +101,16 @@ The Offset column in this visual takes either positive or negative values:
 - Positive values offset to the right hand side, and
 - Negative values offset to the left hand side
 
-## 3. Related Projects
+### 2.4. Backend Server Requirement
 
-This project relies on a related project https://github.com/thehappycheese/nicklinref_rust
+This visual uses a backend server described in detail at https://github.com/thehappycheese/nicklinref_rust
+
+- The server MUST be https
+- The server MUST support CORS with `Access-Control-Allow-Origin:null`,
+- It SHOULD echo the header `x-request-id` (which will be an unsigned integer)
+- It MUST support the `/batch` endpoint binary protocal
+- It SHOULD support post requests to the `/line` endpoint
+  - this powers the 'Goto Road/SLK' feature. However if this cant be supported,
+    then the rest of the visual will work just fine.
+
+Currently there is no support for a `x-api-key` header, but this should be added in future versions.
